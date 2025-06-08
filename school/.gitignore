@@ -1,0 +1,38 @@
+# Python cache and bytecode files
+__pycache__/
+*.py[cod]
+
+# SQLite database
+*.sqlite3
+
+# Virtual environment folder
+venv/
+
+# Environment variables file
+.env
+
+# Django logs and static/media files
+*.log
+/staticfiles/
+/media/
+
+# Editor folders
+.vscode/
+.idea/
+
+# Django migrations except __init__.py
+**/migrations/*.py
+**/migrations/*.pyc
+!**/migrations/__init__.py
+
+# VS Code workspace storage
+.history/
+
+# macOS files
+.DS_Store
+
+# Windows thumbnail cache files
+Thumbs.db
+
+# pyenv
+.python-version
