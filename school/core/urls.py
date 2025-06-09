@@ -10,5 +10,6 @@ router.register(r'teachers', teacherViewSet)
 router.register(r'principal', principalViewSet)
 
 urlpatterns = [
-    path('', include(router.urls))
+    path('', include(router.urls)),
+    path('register-or-login/', RegisterOrLoginView.as_view(), name='register_or_login'),
 ]
