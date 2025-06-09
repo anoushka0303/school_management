@@ -15,3 +15,8 @@ class PrincipalSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Principal
         fields = "__all__"
+
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = User
+        fields = "__all__"
