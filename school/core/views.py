@@ -8,7 +8,7 @@ from .models import User, UserManager
 from rest_framework.views import APIView
 
 from .models import Student, Teacher, Principal
-from .serializers import StudentSerializer, TeacherSerializer, PrincipalSerializer, UserSerializer
+from .serializers import *
 from .permissions import IsStudent, IsTeacher, IsPrincipal, IsUser
 
 # Create your views here.
@@ -34,6 +34,17 @@ class principalViewSet(viewsets.ModelViewSet):
     queryset = Principal.objects.all()
     serializer_class = PrincipalSerializer
     permission_classes = [permissions.IsAuthenticated, IsPrincipal]
+
+
+class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class EnrollmentViewSet(viewsets.ModelViewSet):
+    queryset = Enrollment.objects.all()
+    serializer_class = EnrollmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
@@ -121,3 +132,4 @@ class Register(APIView):
         else:
             user.delete()  
             return Response(serializer.errors, status=400)
+        

@@ -9,6 +9,8 @@ router.register(r'students', studentViewSet)
 router.register(r'teachers', teacherViewSet)
 router.register(r'principal', principalViewSet)
 router.register(r'users', userViewSet)
+router.register(r'courses', CourseViewSet)
+router.register(r'enrollments', EnrollmentViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -1,13 +1,15 @@
-'''from django.contrib import admin
-from .models import Student, Teacher, Principal, User, UserManager
-
-
-admin.site.register(Student)
-admin.site.register(Teacher)
-admin.site.register(Principal)
-admin.site.register(User)'''
 from django.contrib import admin
-from .models import User, Student, Teacher, Principal
+from .models import User, Student, Teacher, Principal, Course, Enrollment
+
+class EnrollmentInline(admin.TabularInline):
+    model = Enrollment
+    extra = 1
+    fields = ('course', 'grade')
+
+class CourseInline(admin.TabularInline):
+    model = Course
+    extra = 1
+    fields = ('course_name',)
 
 class StudentInline(admin.StackedInline):
     model = Student
@@ -20,6 +22,18 @@ class TeacherInline(admin.StackedInline):
 class PrincipalInline(admin.StackedInline):
     model = Principal
     extra = 0
+
+class StudentAdmin(admin.ModelAdmin):
+    inlines = [EnrollmentInline]
+    list_display = ['name', 'class_name', 'semester']
+
+class CourseAdmin(admin.ModelAdmin):
+    inlines = [EnrollmentInline]
+    list_display = ['course_name', 'course_id', 'teacher']
+
+class TeacherAdmin(admin.ModelAdmin):
+    inlines = [CourseInline]
+    list_display = ['name', 'subject']
 
 class UserAdmin(admin.ModelAdmin):
     list_display = ['email', 'role', 'is_staff']
@@ -37,7 +51,7 @@ class UserAdmin(admin.ModelAdmin):
         return []
 
     def save_model(self, request, obj, form, change):
-        if not change: 
+        if not change:
             if obj.role == 'student':
                 obj.set_password('student123')
             elif obj.role == 'teacher':
@@ -49,3 +63,7 @@ class UserAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 admin.site.register(User, UserAdmin)
+admin.site.register(Student, StudentAdmin)
+admin.site.register(Course, CourseAdmin)
+admin.site.register(Enrollment)
+admin.site.register(Teacher, TeacherAdmin)
