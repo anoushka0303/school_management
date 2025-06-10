@@ -35,35 +35,27 @@ class principalViewSet(viewsets.ModelViewSet):
     serializer_class = PrincipalSerializer
     permission_classes = [permissions.IsAuthenticated, IsPrincipal]
 
-class RegisterOrLoginView(APIView):
-    permission_classes = [AllowAny]  
+class LoginView(APIView):
+    permission_classes = [AllowAny]
 
-    
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
-        role = request.data.get('role')
-        
-        if not email or not password or not role:
-            return Response({"error": "Email, password, and role are required."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        if not email or not password:
+            return Response({"error": "Email and password required"}, status=status.HTTP_400_BAD_REQUEST)
+
         user = User.objects.filter(email=email).first()
-        
-        if user:
-            if not user.check_password(password):
-                return Response({"error": "Incorrect password."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            user = User.objects.create_user(email=email, password=password, role=role)
-        
-        access_token = AccessToken.for_user(user)
-        
-        return Response({
-            "access": str(access_token),
-            "user": {
-                "email": user.email,
-                "role": user.role,
-            }
-        }, status=status.HTTP_200_OK)
+        if user and user.check_password(password):
+            access_token = AccessToken.for_user(user)
+            return Response({
+                "access": str(access_token),
+                "user": {
+                    "email": user.email,
+                    "role": user.role,
+                }
+            }, status=status.HTTP_200_OK)
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 
@@ -95,3 +87,37 @@ class UserInfoView(APIView):
                 return Response({"error": "Principal info not found"}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({"error": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
+    
+class Register(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        role = request.data.get('role')
+        email = request.data.get('email')
+        password = request.data.get('password')
+        profile_data = request.data.get('profile', {})
+
+        if not all([email, password, role]):
+            return Response({"error": "email, password, and role are required"}, status=400)
+
+        if role not in ['student', 'teacher']:
+            return Response({"error": "Only student or teacher can be created by admin"}, status=400)
+
+        user = User.objects.create_user(email=email, password=password, role=role)
+
+        if role == 'student':
+            profile_data['user'] = user.id
+            serializer = StudentSerializer(data=profile_data)
+        else:
+            profile_data['user'] = user.id
+            serializer = TeacherSerializer(data=profile_data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "user": UserSerializer(user).data,
+                "profile": serializer.data
+            })
+        else:
+            user.delete()  
+            return Response(serializer.errors, status=400)

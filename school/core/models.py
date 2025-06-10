@@ -18,6 +18,11 @@ class UserManager(BaseUserManager):
             raise ValueError("Invalid role specified")
         email = self.normalize_email(email)
         user = self.model(email=email, role=role, **extra_fields)
+        if(role == 'principal'):
+            user.is_superuser = True
+            user.is_staff = True
+        else:
+            user.is_staff = False
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -25,7 +30,7 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        return self.create_user(email, password, role='principal', **extra_fields)
+        return self.create_user(email, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
@@ -82,11 +87,10 @@ class Principal(models.Model):
             raise ValidationError("Invalid role: Principal model must be linked to a user with role 'principal'.")
         
 
-@receiver(post_save, sender=User)
+'''@receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         if instance.role == 'student':
-            # Create a Student with default placeholder values
             Student.objects.create(
                 user=instance,
                 name='Default Student Name',
@@ -95,15 +99,13 @@ def create_user_profile(sender, instance, created, **kwargs):
                 student_contact='0000000000',
             )
         elif instance.role == 'teacher':
-            # Create a Teacher with default placeholder values
             Teacher.objects.create(
                 user=instance,
                 name='Default Teacher Name',
                 subject='Default Subject',
             )
         elif instance.role == 'principal':
-            # Create a Principal with default placeholder values
             Principal.objects.create(
                 user=instance,
                 name='Default Principal Name',
-            )
+            )'''
