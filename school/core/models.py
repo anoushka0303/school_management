@@ -3,8 +3,6 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 from django.db.models.signals import post_save
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 ROLE_CHOICES = (
     ('student', 'Student'),
@@ -20,7 +18,7 @@ class UserManager(BaseUserManager):
             raise ValueError("Invalid role specified")
         email = self.normalize_email(email)
         user = self.model(email=email, role=role, **extra_fields)
-        if(role == 'principal'):
+        if role == 'principal':
             user.is_superuser = True
             user.is_staff = True
         else:
@@ -47,14 +45,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
-    
 
 class Teacher(models.Model):
     faculty_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     subject = models.CharField(max_length=50)
-    #students = Student.objects.filter(enrollments__course__teacher=teacher)
 
     def __str__(self):
         return f"{self.name} ({self.user.role})"
@@ -62,16 +58,14 @@ class Teacher(models.Model):
     def clean(self):
         if self.user.role != 'teacher':
             raise ValidationError("Invalid role: Teacher model must be linked to a user with role 'teacher'.")
-    
 
 class Course(models.Model):
-    course_name = models.CharField(max_length= 50)
-    course_id = models.AutoField(primary_key= True)
-    teacher = models.OneToOneField(Teacher, on_delete=models.CASCADE, related_name= 'courses')
+    course_name = models.CharField(max_length=50)
+    course_id = models.AutoField(primary_key=True)
+    teacher = models.OneToOneField(Teacher, on_delete=models.CASCADE, related_name='courses')
 
     def __str__(self):
         return f"{self.course_name} - {self.teacher.name}"
-    
 
 class Student(models.Model):
     student_id = models.AutoField(primary_key=True)
@@ -80,8 +74,8 @@ class Student(models.Model):
     guardian_name = models.CharField(max_length=100)
     guardian_contact = models.CharField(max_length=10)
     student_contact = models.CharField(max_length=10)
-    class_name = models.CharField(max_length=20, default= 'NA')
-    semester = models.IntegerField(default= 1)
+    class_name = models.CharField(max_length=20, default='NA')
+    semester = models.IntegerField(default=1)
     courses = models.ManyToManyField(Course, through='Enrollment', related_name='students')
 
     def __str__(self):
@@ -90,26 +84,17 @@ class Student(models.Model):
     def clean(self):
         if self.user.role != 'student':
             raise ValidationError("Invalid role: Student model must be linked to a user with role 'student'.")
-        
 
-    
-
-    
 class Enrollment(models.Model):
-    student = models.ForeignKey(Student, on_delete= models.CASCADE)
-    course = models.ForeignKey(Course, on_delete= models.CASCADE)
-    grade = models.CharField(max_length= 2,null= True, blank= True)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    grade = models.CharField(max_length=2, null=True, blank=True)
 
     class Meta:
         unique_together = ('student', 'course')
 
     def __str__(self):
-        return f"{self.student.name} in {self.course.name} - Grade: {self.grade or 'N/A'}"
-
-
-
-
-
+        return f"{self.student.name} in {self.course.course_name} - Grade: {self.grade or 'N/A'}"
 
 class Principal(models.Model):
     principal_id = models.AutoField(primary_key=True)
@@ -122,14 +107,18 @@ class Principal(models.Model):
     def clean(self):
         if self.user.role != 'principal':
             raise ValidationError("Invalid role: Principal model must be linked to a user with role 'principal'.")
-        
 
-
-
-@receiver(post_save, sender = Teacher)
+@receiver(post_save, sender=Teacher)
 def create_course_for_teacher(sender, instance, created, **kwargs):
     if created:
         Course.objects.create(
-            course_name=f"{instance.subject} Course", 
+            course_name=f"{instance.subject} Course",
             teacher=instance
         )
+
+@receiver(post_save, sender=Student)
+def enroll_student_in_course(sender, instance, created, **kwargs):
+    if created:
+        courses = Course.objects.all()
+        for course in courses:
+            Enrollment.objects.create(student=instance, course=course)
