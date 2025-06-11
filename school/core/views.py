@@ -52,11 +52,16 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
+        role = request.data.get('role')
 
-        if not email or not password:
-            return Response({"error": "Email and password required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not email or not password or not role:
+            return Response({"error": "Email, password and role required"}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(email=email).first()
+
+        if user.role != role:
+            return Response({"error": f"User role mismatch. Expected role '{user.role}'."}, status=status.HTTP_401_UNAUTHORIZED)
+
         if user and user.check_password(password):
             access_token = AccessToken.for_user(user)
             return Response({
