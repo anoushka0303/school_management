@@ -8,6 +8,7 @@ ROLE_CHOICES = (
     ('student', 'Student'),
     ('teacher', 'Teacher'),
     ('principal', 'Principal'),
+    ('admin', 'Admin'),
 )
 
 class UserManager(BaseUserManager):
@@ -19,7 +20,6 @@ class UserManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(email=email, role=role, **extra_fields)
         if role == 'principal':
-            user.is_superuser = True
             user.is_staff = True
         else:
             user.is_staff = False
@@ -28,15 +28,18 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password, **extra_fields):
+        extra_fields.setdefault('role', 'admin')  
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, password, **extra_fields)
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=50, choices=ROLE_CHOICES)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    created_date = models.DateTimeField(null= True, blank= True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['role']
@@ -46,11 +49,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.email} ({self.role})"
 
+
+
 class Teacher(models.Model):
     faculty_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     subject = models.CharField(max_length=50)
+    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_teacher')
+    created_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='created_teacher')
+    deleted_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    deleted_by = models.ForeignKey(User, on_delete= models.SET_NULL, null= True, related_name= 'deleted_teacher')
 
     def __str__(self):
         return f"{self.name} ({self.user.role})"
@@ -77,6 +88,15 @@ class Student(models.Model):
     class_name = models.CharField(max_length=20, default='NA')
     semester = models.IntegerField(default=1)
     courses = models.ManyToManyField(Course, through='Enrollment', related_name='students')
+    address = models.TextField(null = True, blank= True)
+    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_student')
+    created_date = models.DateTimeField(auto_now_add=True, null= True, blank= True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='created_student')
+    deleted_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    deleted_by = models.ForeignKey(User, on_delete= models.SET_NULL, null= True, related_name= 'deleted_student')
+    fee_status = models.CharField(max_length=50, default='unpaid')
+
 
     def __str__(self):
         return f"{self.name} ({self.user.role})"
@@ -89,6 +109,8 @@ class Enrollment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     grade = models.CharField(max_length=2, null=True, blank=True)
+    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_enrollment')
 
     class Meta:
         unique_together = ('student', 'course')
@@ -100,6 +122,12 @@ class Principal(models.Model):
     principal_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
+    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_principal')
+    created_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='created_principal')
+    deleted_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    deleted_by = models.ForeignKey(User, on_delete= models.SET_NULL, null= True, related_name= 'deleted_principal')
 
     def __str__(self):
         return f"{self.name} ({self.user.role})"
@@ -116,9 +144,10 @@ def create_course_for_teacher(sender, instance, created, **kwargs):
             teacher=instance
         )
 
-@receiver(post_save, sender=Student)
+'''@receiver(post_save, sender=Student)
 def enroll_student_in_course(sender, instance, created, **kwargs):
     if created:
         courses = Course.objects.all()
         for course in courses:
-            Enrollment.objects.create(student=instance, course=course)
+            if not Enrollment.objects.filter(student=instance, course=course).exists():
+                Enrollment.objects.create(student=instance, course=course)'''
