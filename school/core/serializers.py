@@ -169,3 +169,22 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'
+
+
+class AdminSerializer(serializers.Serializer):
+    students = StudentSerializer(source='get_students', many=True)
+    teachers = TeacherSerializer(source='get_teachers', many=True)
+    principals = PrincipalSerializer(source='get_principals', many=True)
+    courses = serializers.SerializerMethodField()
+
+    def get_students(self, obj):
+        return Student.objects.all()
+
+    def get_teachers(self, obj):
+        return Teacher.objects.all()
+
+    def get_principals(self, obj):
+        return Principal.objects.all()
+
+    def get_courses(self, obj):
+        return Course.objects.all()

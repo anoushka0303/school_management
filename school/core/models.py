@@ -3,6 +3,9 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 from django.db.models.signals import post_save
+import bcrypt
+from django.contrib.auth.hashers import check_password as django_check_password
+
 
 ROLE_CHOICES = (
     ('student', 'Student'),
@@ -28,18 +31,17 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password, **extra_fields):
-        extra_fields.setdefault('role', 'admin')  
+        extra_fields.setdefault('role', 'admin')
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, password, **extra_fields)
-
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=50, choices=ROLE_CHOICES)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    created_date = models.DateTimeField(null= True, blank= True)
+    created_date = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['role']
@@ -48,6 +50,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
+
+    def set_password(self, raw_password):
+        hashed = bcrypt.hashpw(raw_password.encode('utf-8'), bcrypt.gensalt())
+        self.password = hashed.decode('utf-8')
+
+    def check_password(self, raw_password):
+        try:
+            return bcrypt.checkpw(raw_password.encode('utf-8'), self.password.encode('utf-8'))
+        except ValueError:
+            return django_check_password(raw_password, self.password)
 
 
 
