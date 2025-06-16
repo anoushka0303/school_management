@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from .models import User, Student, Teacher, Principal, Course, Enrollment
 from .serializers import *
-from .permissions import IsStudent, IsTeacher, IsPrincipal, IsUser, IsAdminOrSelf, IsAdmin 
+from .permissions import *
 
 from django.utils import timezone
 
@@ -23,7 +23,23 @@ token_generator = PasswordResetTokenGenerator()
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated, IsUser]
+    
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        elif self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsUser()]
+        
+    def get_object(self):
+        obj = super().get_object()
+        user = self.request.user
+
+        if self.action == 'retrieve' and not (user.role == 'admin' or obj == user):
+            return Response(
+                {"detail": "Forbidden access. You can only view your own profile."},
+                status= 403
+            )
+        
 
 
 class StudentViewSet(viewsets.ModelViewSet):
@@ -31,40 +47,45 @@ class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
 
     def get_permissions(self):
-        if self.request.method == 'DELETE':
+        if self.action == 'list':
             return [permissions.IsAuthenticated(), IsAdmin()]
-        return [permissions.IsAuthenticated(), IsStudent()]
-
+        elif self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsAdminOrSelfForStudent()]
+        elif self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def destroy(self, request, *args, **kwargs):
         if request.user.role != 'admin':
-            return Response({"only admin can delete users."}, status= status.HTTP_403_FORBIDDEN)
-        
+            return Response({"only admin can delete users."}, status=status.HTTP_403_FORBIDDEN)
+
         instance = self.get_object()
         instance.user.is_active = False
         instance.user.save()
-        return Response({"user has been deleted."}, status= status.HTTP_204_NO_CONTENT)
+        return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class TeacherViewSet(viewsets.ModelViewSet):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
 
-
     def get_permissions(self):
-        if self.request.method == 'DELETE':
+        if self.action == 'list':
             return [permissions.IsAuthenticated(), IsAdmin()]
-        return [permissions.IsAuthenticated(), IsTeacher()]
-
+        elif self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsAdminOrSelfForTeacher()]
+        elif self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def destroy(self, request, *args, **kwargs):
         if request.user.role != 'admin':
-            return Response({"only admin can delete users."}, status= status.HTTP_403_FORBIDDEN)
-        
+            return Response({"only admin can delete users."}, status=status.HTTP_403_FORBIDDEN)
+
         instance = self.get_object()
         instance.user.is_active = False
         instance.user.save()
-        return Response({"user has been deleted."}, status= status.HTTP_204_NO_CONTENT)
+        return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class PrincipalViewSet(viewsets.ModelViewSet):
@@ -72,19 +93,22 @@ class PrincipalViewSet(viewsets.ModelViewSet):
     serializer_class = PrincipalSerializer
 
     def get_permissions(self):
-        if self.request.method == 'DELETE':
+        if self.action == 'list':
             return [permissions.IsAuthenticated(), IsAdmin()]
-        return [permissions.IsAuthenticated(), IsPrincipal()]
-
+        elif self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsAdminOrSelfForPrincipal()]  
+        elif self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def destroy(self, request, *args, **kwargs):
         if request.user.role != 'admin':
-            return Response({"only admin can delete users."}, status= status.HTTP_403_FORBIDDEN)
-        
+            return Response({"only admin can delete users."}, status=status.HTTP_403_FORBIDDEN)
+
         instance = self.get_object()
         instance.user.is_active = False
         instance.user.save()
-        return Response({"user has been deleted."}, status= status.HTTP_204_NO_CONTENT)
+        return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -102,7 +126,7 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
 class GradeUpdateView(viewsets.ModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = GradeUpdateSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+    permission_classes = [permissions.IsAuthenticated, CanUpdateOwnStudentGradeOnly]
 
 
 class LoginView(APIView):
@@ -173,18 +197,28 @@ class Register(APIView):
         profile_data = request.data.get('profile', {})
 
         if not all([email, password, role]):
-            return Response({"error": "email, password, and role are required"}, status=400)
+            return Response({
+                "has_error" : True,
+                "status" : 400,
+                "message": "Bad Request. Email, password, and role are required"
+                }, status=400)
 
         if role not in ['student', 'teacher', 'principal']:
-            return Response({"error": "Only student or teacher can be created by admin"}, status=400)
+            return Response({
+                "has_error" : True,
+                "status" : 400,
+                "message": "Bad Request. Only student, teacher or principal can be created by admin"
+                }, status=400)
 
         user = User.objects.create_user(email=email, password=password, role=role, created_date = timezone.now())
         profile_data['user'] = user.id
 
         if role == 'student':
             serializer = StudentSerializer(data=profile_data)
-        else:
+        elif role == 'teacher':
             serializer = TeacherSerializer(data=profile_data)
+        elif role == 'principal':
+            serializer = PrincipalSerializer(data=profile_data)
 
         if serializer.is_valid():
             serializer.save()
@@ -198,17 +232,9 @@ class Register(APIView):
 
 
 
-class UpdateView(viewsets.ModelViewSet):
+'''class UpdateView(viewsets.ModelViewSet):
     def get_queryset(self):
         update_type = self.request.data.get('update_type')
-        if update_type == 'grade':
-            return Enrollment.objects.all()
-        return Student.objects.all()
-
-    def get_object(self):
-        update_type = self.request.data.get('update_type')
-        if update_type == 'grade':
-            return Enrollment.objects.get(pk=self.kwargs['pk'])
         return super().get_object()
 
     def get_serializer_class(self):
@@ -221,8 +247,6 @@ class UpdateView(viewsets.ModelViewSet):
             return StudentFeeStatusSerializer
         elif update_type == 'address':
             return StudentAddressSerializer
-        elif update_type == 'grade':
-            return GradeUpdateSerializer
         else:
             raise ValidationError({'detail': 'Invalid update_type'})
 
@@ -239,7 +263,7 @@ class UpdateView(viewsets.ModelViewSet):
         return perms
 
     def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
+        return super().partial_update(request, *args, **kwargs)'''
     
     
 class RequestPasswordResetView(APIView):
@@ -249,18 +273,34 @@ class RequestPasswordResetView(APIView):
         old_password = request.data.get('old_password')
 
         if not email or not old_password:
-            return Response({"error": "Email and previous password is required"}, status=400)
+            return Response({
+                "has_error" : True,
+                "status" : 400,
+                "message": "Bad request. Email and previous password is required"
+                }, status=400)
 
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=404)
+            return Response({
+                "has_error" : True,
+                "status" : 404,
+                "message": "User not found"
+                }, status=404)
         
         if not user.is_active:
-            return Response({"error" : "This user does not exist."}, status= 403)
+            return Response({
+                "has_error" : True,
+                "status" : 404,
+                "message": "User not found"
+                }, status= 404)
         
         if not user.check_password(old_password):
-            return Response({"error" : "Cannot change passowrd. Old password does not match"}, status= 403)
+            return Response({
+                "has_error" : True,
+                "status" : 403,
+                "message" : "Forbidden error. Old password does not match."
+                }, status= 403)
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))  
         token = PasswordResetTokenGenerator().make_token(user)  
@@ -293,3 +333,63 @@ class ConfirmPasswordResetView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"message": "Password reset successful"}, status=200)
+    
+class StudentUpdateView(viewsets.ViewSet):
+    serializer_class = StudentUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSelfForStudent]
+
+    def get_object(self):
+        if self.request.user.is_staff:
+            student_id = self.kwargs.get('pk')
+            return Student.objects.get(pk=student_id)
+        return Student.objects.get(user=self.request.user)
+
+    def partial_update(self, request, pk=None):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        serializer = self.serializer_class(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TeacherUpdateView(viewsets.ModelViewSet):
+    serializer_class = TeacherUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacher, IsAdminOrSelfForTeacher]
+
+    def get_object(self):
+        return Teacher.objects.get(user=self.request.user)
+
+
+class PrincipalUpdateView(viewsets.ModelViewSet):
+    serializer_class = PrincipalUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSelfForPrincipal]
+    http_method_names = ['patch']  # restrict to PATCH only
+
+    def get_object(self):
+        return Principal.objects.get(user=self.request.user)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+    
+
+
+class UpdateFeeStatusView(viewsets.ModelViewSet):
+    queryset = Student.objects.all()
+    serializer_class = StudentFeeStatusSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance) 
+
+        serializer = self.get_serializer(instance, data=request.data, partial=True, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)

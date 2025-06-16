@@ -121,22 +121,6 @@ class StudentFeeStatusSerializer(serializers.ModelSerializer):
         return instance
 
 
-class StudentAddressSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = ['address']
-
-    def update(self, instance, validated_data):
-        user = self.context['request'].user
-        if user.role != 'student' or instance.user != user:
-            raise serializers.ValidationError("You are not authorized to update this address.")
-
-        instance.address = validated_data.get('address', instance.address)
-        instance.updated_by = user
-        instance.save()
-        return instance
-
-
 class TeacherCourseSerializer(serializers.ModelSerializer):
     students = serializers.SerializerMethodField()
 
@@ -171,7 +155,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class AdminSerializer(serializers.Serializer):
+'''class AdminSerializer(serializers.Serializer):
     students = StudentSerializer(source='get_students', many=True)
     teachers = TeacherSerializer(source='get_teachers', many=True)
     principals = PrincipalSerializer(source='get_principals', many=True)
@@ -187,4 +171,51 @@ class AdminSerializer(serializers.Serializer):
         return Principal.objects.all()
 
     def get_courses(self, obj):
-        return Course.objects.all()
+        return Course.objects.all()'''
+
+
+class StudentUpdateSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=False)
+    guardian_name = serializers.CharField(required=False)
+    guardian_contact = serializers.CharField(required=False)
+    student_contact = serializers.CharField(required=False)
+    address = serializers.CharField(required=False)
+
+    class Meta:
+        model = Student
+        fields = ['name', 'guardian_name', 'guardian_contact', 'student_contact', 'address']
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.guardian_name = validated_data.get('guardian_name', instance.guardian_name)
+        instance.guardian_contact = validated_data.get('guardian_contact', instance.guardian_contact)
+        instance.student_contact = validated_data.get('student_contact', instance.student_contact)
+        instance.address = validated_data.get('address', instance.address)
+        instance.save()
+        return instance
+
+class TeacherUpdateSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=False)
+    subject = serializers.CharField(required=False)
+
+    class Meta:
+        model = Teacher
+        fields = ['name', 'subject']
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.subject = validated_data.get('subject', instance.subject)
+        instance.save()
+        return instance
+
+class PrincipalUpdateSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=False)
+
+    class Meta:
+        model = Principal
+        fields = ['name']
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.save()
+        return instance
