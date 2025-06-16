@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import *
+from django.utils import timezone
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -33,15 +34,50 @@ class StudentCourseEnrollmentSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     enrollments = EnrollmentSerializer(source='enrollment_set', many=True, read_only=True)
+    courses = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Course.objects.all(), write_only=True
+    )
 
     class Meta:
         model = Student
         fields = [
             'student_id', 'user', 'name', 'guardian_name', 'guardian_contact',
-            'student_contact', 'class_name', 'semester', 'enrollments',
+            'student_contact', 'class_name', 'semester', 'courses', 'enrollments',
             'updated_date', 'updated_by', 'created_date', 'created_by',
             'deleted_date', 'deleted_by'
         ]
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        courses = validated_data.pop('courses', [])
+        student = Student.objects.create(**validated_data)
+        student.courses.set(courses)
+
+        student.created_by = user
+        student.updated_by = user
+        student.save()
+
+        return student
+    
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        courses = validated_data.pop('courses', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if courses is not None:
+            instance.courses.set(courses)
+            
+        instance.save()
+
+        return instance
+
+
 
 
 class StudentPersonalInfoSerializer(serializers.ModelSerializer):
@@ -101,6 +137,10 @@ class GradeUpdateSerializer(serializers.ModelSerializer):
 
         instance.grade = validated_data.get('grade', instance.grade)
         instance.updated_by = user
+        instance.student.user.updated_by = user
+        instance.student.update_date = timezone.now()
+        instance.student.user.updated_by = user 
+        instance.student.user.updated_date = timezone.now()
         instance.save()
         return instance
 
@@ -117,6 +157,9 @@ class StudentFeeStatusSerializer(serializers.ModelSerializer):
 
         instance.fee_status = validated_data.get('fee_status', instance.fee_status)
         instance.updated_by = user
+        instance.updated_date = timezone.now()
+        instance.user.updated_by = user 
+        instance.user.updated_date = timezone.now()
         instance.save()
         return instance
 
@@ -186,11 +229,16 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
         fields = ['name', 'guardian_name', 'guardian_contact', 'student_contact', 'address']
 
     def update(self, instance, validated_data):
+        user = self.context['request'].user
         instance.name = validated_data.get('name', instance.name)
         instance.guardian_name = validated_data.get('guardian_name', instance.guardian_name)
         instance.guardian_contact = validated_data.get('guardian_contact', instance.guardian_contact)
         instance.student_contact = validated_data.get('student_contact', instance.student_contact)
         instance.address = validated_data.get('address', instance.address)
+        instance.updated_by = user 
+        instance.updated_date = timezone.now()
+        instance.user.updated_by = user 
+        instance.user.updated_date = timezone.now()
         instance.save()
         return instance
 
@@ -203,8 +251,13 @@ class TeacherUpdateSerializer(serializers.ModelSerializer):
         fields = ['name', 'subject']
 
     def update(self, instance, validated_data):
+        user = self.context['request'].user
         instance.name = validated_data.get('name', instance.name)
         instance.subject = validated_data.get('subject', instance.subject)
+        instance.updated_by = user 
+        instance.updated_date = timezone.now()
+        instance.user.updated_by = user 
+        instance.user.updated_date = timezone.now()
         instance.save()
         return instance
 
@@ -216,6 +269,11 @@ class PrincipalUpdateSerializer(serializers.ModelSerializer):
         fields = ['name']
 
     def update(self, instance, validated_data):
+        user = self.context['request'].user
         instance.name = validated_data.get('name', instance.name)
+        instance.updated_by = user 
+        instance.updated_date = timezone.now()
+        instance.user.updated_by = user 
+        instance.user.updated_date = timezone.now()
         instance.save()
         return instance

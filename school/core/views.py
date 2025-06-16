@@ -61,6 +61,8 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         instance = self.get_object()
         instance.user.is_active = False
+        instance.deleted_by = request.user
+        instance.deleted_date = timezone.now()
         instance.user.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
@@ -84,6 +86,8 @@ class TeacherViewSet(viewsets.ModelViewSet):
 
         instance = self.get_object()
         instance.user.is_active = False
+        instance.deleted_by = request.user
+        instance.deleted_date = timezone.now()
         instance.user.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
@@ -107,6 +111,10 @@ class PrincipalViewSet(viewsets.ModelViewSet):
 
         instance = self.get_object()
         instance.user.is_active = False
+        instance.deleted_by = request.user
+        instance.deleted_date = timezone.now()
+        instance.user.created_by = request.user
+        instance.user.created_date = timezone.now()
         instance.user.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
@@ -221,7 +229,12 @@ class Register(APIView):
             serializer = PrincipalSerializer(data=profile_data)
 
         if serializer.is_valid():
-            serializer.save()
+            instance = serializer.save()
+            instance.created_by = request.user
+            instance.created_date = timezone.now()
+            instance.user.created_by = request.user
+            instance.user.created_date = timezone.now()
+            instance.save()
             return Response({
                 "user": UserSerializer(user).data,
                 "profile": serializer.data

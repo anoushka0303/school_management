@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, m2m_changed
 import bcrypt
 from django.contrib.auth.hashers import check_password as django_check_password
 
@@ -42,6 +42,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_date = models.DateTimeField(null=True, blank=True)
+    updated_date = models.DateTimeField(null = True, blank= True)
+    updated_by = models.ForeignKey('self', on_delete=models.SET_NULL, null= True,blank=True, related_name='updated_user')
+    created_date = models.DateTimeField(null = True, blank= True)
+    created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null= True,blank=True, related_name='created_user')
+    deleted_date = models.DateTimeField(null = True, blank= True)
+    deleted_by = models.ForeignKey('self', on_delete= models.SET_NULL, null= True,blank=True, related_name= 'deleted_user')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['role']
@@ -68,11 +74,11 @@ class Teacher(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     subject = models.CharField(max_length=50)
-    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_date = models.DateTimeField(null = True, blank= True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_teacher')
-    created_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    created_date = models.DateTimeField(null = True, blank= True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='created_teacher')
-    deleted_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    deleted_date = models.DateTimeField(null = True, blank= True)
     deleted_by = models.ForeignKey(User, on_delete= models.SET_NULL, null= True, related_name= 'deleted_teacher')
 
     def __str__(self):
@@ -101,11 +107,11 @@ class Student(models.Model):
     semester = models.IntegerField(default=1)
     courses = models.ManyToManyField(Course, through='Enrollment', related_name='students')
     address = models.TextField(null = True, blank= True)
-    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_date = models.DateTimeField(null = True, blank= True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_student')
-    created_date = models.DateTimeField(auto_now_add=True, null= True, blank= True)
+    created_date = models.DateTimeField(null= True, blank= True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='created_student')
-    deleted_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    deleted_date = models.DateTimeField(null = True, blank= True)
     deleted_by = models.ForeignKey(User, on_delete= models.SET_NULL, null= True, related_name= 'deleted_student')
     fee_status = models.CharField(max_length=50, default='unpaid')
 
@@ -121,7 +127,7 @@ class Enrollment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     grade = models.CharField(max_length=2, null=True, blank=True)
-    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_date = models.DateTimeField(null = True, blank= True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_enrollment')
 
     class Meta:
@@ -134,11 +140,11 @@ class Principal(models.Model):
     principal_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
-    updated_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    updated_date = models.DateTimeField(null = True, blank= True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='updated_principal')
-    created_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    created_date = models.DateTimeField(null = True, blank= True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null= True, related_name='created_principal')
-    deleted_date = models.DateTimeField(auto_now= True, null = True, blank= True)
+    deleted_date = models.DateTimeField(null = True, blank= True)
     deleted_by = models.ForeignKey(User, on_delete= models.SET_NULL, null= True, related_name= 'deleted_principal')
 
     def __str__(self):
@@ -156,10 +162,10 @@ def create_course_for_teacher(sender, instance, created, **kwargs):
             teacher=instance
         )
 
-'''@receiver(post_save, sender=Student)
-def enroll_student_in_course(sender, instance, created, **kwargs):
-    if created:
-        courses = Course.objects.all()
-        for course in courses:
-            if not Enrollment.objects.filter(student=instance, course=course).exists():
-                Enrollment.objects.create(student=instance, course=course)'''
+@receiver(m2m_changed, sender=Student.courses.through)
+def create_enrollment_on_course_add(sender, instance, action, reverse, model, pk_set, **kwargs):
+    if action == "post_add":
+        for course_pk in pk_set:
+            course = Course.objects.filter(pk=course_pk).first()
+            if course and not Enrollment.objects.filter(student=instance, course=course).exists():
+                Enrollment.objects.create(student=instance, course=course)
