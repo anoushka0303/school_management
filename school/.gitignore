@@ -21,9 +21,9 @@ venv/
 .idea/
 
 # Django migrations except __init__.py
-**/migrations/*.py
-**/migrations/*.pyc
-!**/migrations/__init__.py
+#**/migrations/*.py
+#**/migrations/*.pyc
+#!**/migrations/__init__.py
 
 # VS Code workspace storage
 .history/
