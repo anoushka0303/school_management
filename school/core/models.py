@@ -169,3 +169,61 @@ def create_enrollment_on_course_add(sender, instance, action, reverse, model, pk
             course = Course.objects.filter(pk=course_pk).first()
             if course and not Enrollment.objects.filter(student=instance, course=course).exists():
                 Enrollment.objects.create(student=instance, course=course)
+
+
+@receiver(post_save, sender=Student)
+def mirror_student_fields_to_user(sender, instance, **kwargs):
+    user = instance.user
+    updated = False
+    if instance.deleted_by and (user.deleted_by != instance.deleted_by or not user.deleted_by):
+        user.deleted_by = instance.deleted_by
+        updated = True
+    if instance.deleted_date and (user.deleted_date != instance.deleted_date or not user.deleted_date):
+        user.deleted_date = instance.deleted_date
+        updated = True
+    if instance.created_by and (user.created_by != instance.created_by or not user.created_by):
+        user.created_by = instance.created_by
+        updated = True
+    if instance.created_date and (user.created_date != instance.created_date or not user.created_date):
+        user.created_date = instance.created_date
+        updated = True
+    if updated:
+        user.save()
+
+@receiver(post_save, sender=Teacher)
+def mirror_teacher_fields_to_user(sender, instance, **kwargs):
+    user = instance.user
+    updated = False
+    if instance.deleted_by and (user.deleted_by != instance.deleted_by or not user.deleted_by):
+        user.deleted_by = instance.deleted_by
+        updated = True
+    if instance.deleted_date and (user.deleted_date != instance.deleted_date or not user.deleted_date):
+        user.deleted_date = instance.deleted_date
+        updated = True
+    if instance.created_by and (user.created_by != instance.created_by or not user.created_by):
+        user.created_by = instance.created_by
+        updated = True
+    if instance.created_date and (user.created_date != instance.created_date or not user.created_date):
+        user.created_date = instance.created_date
+        updated = True
+    if updated:
+        user.save()
+
+@receiver(post_save, sender=Principal)
+def mirror_principal_fields_to_user(sender, instance, **kwargs):
+    user = instance.user
+    updated = False
+    if instance.deleted_by and (user.deleted_by != instance.deleted_by or not user.deleted_by):
+        user.deleted_by = instance.deleted_by
+        updated = True
+    if instance.deleted_date and (user.deleted_date != instance.deleted_date or not user.deleted_date):
+        user.deleted_date = instance.deleted_date
+        updated = True
+    if instance.created_by and (user.created_by != instance.created_by or not user.created_by):
+        user.created_by = instance.created_by
+        updated = True
+    if instance.created_date and (user.created_date != instance.created_date or not user.created_date):
+        user.created_date = instance.created_date
+        updated = True
+    if updated:
+        user.save()

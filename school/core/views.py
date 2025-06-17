@@ -63,7 +63,10 @@ class StudentViewSet(viewsets.ModelViewSet):
         instance.user.is_active = False
         instance.deleted_by = request.user
         instance.deleted_date = timezone.now()
+        instance.created_by = request.user
+        instance.created_date = timezone.now()
         instance.user.save()
+        instance.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
@@ -88,6 +91,8 @@ class TeacherViewSet(viewsets.ModelViewSet):
         instance.user.is_active = False
         instance.deleted_by = request.user
         instance.deleted_date = timezone.now()
+        instance.created_by = request.user
+        instance.created_date = timezone.now()
         instance.user.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
@@ -115,6 +120,9 @@ class PrincipalViewSet(viewsets.ModelViewSet):
         instance.deleted_date = timezone.now()
         instance.user.created_by = request.user
         instance.user.created_date = timezone.now()
+
+        instance.created_by = request.user
+        instance.created_date = timezone.now()
         instance.user.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
