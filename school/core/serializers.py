@@ -72,7 +72,7 @@ class StudentSerializer(serializers.ModelSerializer):
 
         if courses is not None:
             instance.courses.set(courses)
-            
+
         instance.save()
 
         return instance
@@ -80,7 +80,7 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 
-class StudentPersonalInfoSerializer(serializers.ModelSerializer):
+'''class StudentPersonalInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ['name', 'guardian_name', 'guardian_contact', 'student_contact']
@@ -94,10 +94,10 @@ class StudentPersonalInfoSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.updated_by = user
         instance.save()
-        return instance
+        return instance'''
 
 
-class StudentAcademicInfoSerializer(serializers.ModelSerializer):
+'''class StudentAcademicInfoSerializer(serializers.ModelSerializer):
     enrollments = serializers.SerializerMethodField()
 
     class Meta:
@@ -118,7 +118,7 @@ class StudentAcademicInfoSerializer(serializers.ModelSerializer):
             instance.save()
             return instance
 
-        raise serializers.ValidationError("Only admins can update academic information here.")
+        raise serializers.ValidationError("Only admins can update academic information here.")'''
 
 
 class GradeUpdateSerializer(serializers.ModelSerializer):
@@ -277,3 +277,9 @@ class PrincipalUpdateSerializer(serializers.ModelSerializer):
         instance.user.updated_date = timezone.now()
         instance.save()
         return instance
+    
+
+class BulkDownloadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = "__all__"

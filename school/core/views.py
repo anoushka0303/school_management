@@ -16,6 +16,14 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
+import openpyxl
+
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+
+import os
+from django.conf import settings
+
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
 
@@ -94,6 +102,7 @@ class TeacherViewSet(viewsets.ModelViewSet):
         instance.created_by = request.user
         instance.created_date = timezone.now()
         instance.user.save()
+        instance.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
@@ -124,6 +133,7 @@ class PrincipalViewSet(viewsets.ModelViewSet):
         instance.created_by = request.user
         instance.created_date = timezone.now()
         instance.user.save()
+        instance.save()
         return Response({"user has been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 
@@ -414,3 +424,45 @@ class UpdateFeeStatusView(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+    
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.conf import settings
+import os
+import openpyxl
+
+class BulkDownloadStudentExcelView(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        students = Student.objects.all()
+        serializer = BulkDownloadSerializer(students, many=True)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Students"
+
+        headers = list(serializer.data[0].keys()) if serializer.data else []
+        ws.append(headers)
+
+        for student in serializer.data:
+            row = []
+            for field in headers:
+                value = student.get(field, "")
+                if isinstance(value, list):
+                    value = ", ".join(str(v) for v in value)
+                elif isinstance(value, dict):
+                    value = str(value)
+                row.append(value)
+            ws.append(row)
+
+        folder_path = os.path.join(settings.MEDIA_ROOT, 'exports')
+        os.makedirs(folder_path, exist_ok=True)
+
+        file_path = os.path.join(folder_path, 'students.xlsx')
+        wb.save(file_path)
+
+        file_url = request.build_absolute_uri(settings.MEDIA_URL + 'exports/students.xlsx')
+
+        return Response({'file_url': file_url})
