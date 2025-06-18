@@ -44,6 +44,7 @@ urlpatterns = [
 
     path('<str:role>/bulk-download/', BulkDownloadExcelView.as_view(), name = 'bulk-download'),
     path('bulk-upload/', BulkUploadViewSet.as_view({'post' : 'create'}), name = 'bulk-upload'),
+    path('bulk-enroll/', BulkEnrollViewSet.as_view({'post' : 'create'}), name = 'bulk-enroll'),
 
     # All router-based URLs
     path('', include(router.urls)),

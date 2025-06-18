@@ -541,3 +541,45 @@ class BulkUploadViewSet(viewsets.ViewSet):
                 })
 
         return Response({"results": results})
+
+
+class BulkEnrollViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def create(self, request):
+        users_data = request.data.get("enrollments", [])
+        results = []
+
+        for data in users_data:
+            course = data.get("course")
+            student = data.get("student")
+            grade = data.get("grade", None)
+
+            if not course or not student:
+                results.append({
+                    "status": "failed",
+                    "student": student,
+                    "course": course,
+                    "message": "Student or course missing"
+                })
+                continue
+
+            serializer = EnrollmentSerializer(data={
+                "student": student,
+                "course": course,
+                "grade": grade
+            })
+
+            if serializer.is_valid():
+                serializer.save()
+                results.append({
+                    "status": "success",
+                    "data": serializer.data
+                })
+            else:
+                results.append({
+                    "status": "failed",
+                    "errors": serializer.errors
+                })
+
+        return Response(results)
