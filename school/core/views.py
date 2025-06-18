@@ -5,24 +5,19 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from rest_framework.views import APIView
-
 from .models import User, Student, Teacher, Principal, Course, Enrollment
 from .serializers import *
 from .permissions import *
-
 from django.utils import timezone
-
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-
 import openpyxl
-
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
-
 import os
 from django.conf import settings
+from .utils import send_email
 
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
@@ -253,6 +248,19 @@ class Register(APIView):
             instance.user.created_by = request.user
             instance.user.created_date = timezone.now()
             instance.save()
+
+            admin_email = request.user.email
+            subject = "You have been registered on the platform"
+            html = f"""
+            <p>Hello,</p>
+            <p>You have been registered as a <strong>{role}</strong> on the platform by admin <strong>{admin_email}</strong>.</p>
+            <p>Login email: <strong>{email}</strong></p>
+            <p>Password : {password}</p>
+            <p>Please reset your password after logging in.</p>
+            """
+
+            send_email(to_email=email,subject= subject,html_content= html)
+
             return Response({
                 "user": UserSerializer(user).data,
                 "profile": serializer.data
@@ -260,41 +268,6 @@ class Register(APIView):
         else:
             user.delete()
             return Response(serializer.errors, status=400)
-
-
-
-'''class UpdateView(viewsets.ModelViewSet):
-    def get_queryset(self):
-        update_type = self.request.data.get('update_type')
-        return super().get_object()
-
-    def get_serializer_class(self):
-        update_type = self.request.data.get('update_type')
-        if update_type == 'personal':
-            return StudentPersonalInfoSerializer
-        elif update_type == 'academic':
-            return StudentAcademicInfoSerializer
-        elif update_type == 'fee-status':
-            return StudentFeeStatusSerializer
-        elif update_type == 'address':
-            return StudentAddressSerializer
-        else:
-            raise ValidationError({'detail': 'Invalid update_type'})
-
-    def get_permissions(self):
-        update_type = self.request.data.get('update_type')
-        perms = [permissions.IsAuthenticated()]
-
-        if update_type in ['personal', 'address']:
-            perms.append(IsStudent())
-        elif update_type in ['academic', 'fee-status']:
-            perms.append(IsAdmin())
-        elif update_type == 'grade':
-            perms.append(IsTeacher())
-        return perms
-
-    def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)'''
     
     
 class RequestPasswordResetView(APIView):
@@ -364,6 +337,7 @@ class ConfirmPasswordResetView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"message": "Password reset successful"}, status=200)
+
     
 class StudentUpdateView(viewsets.ViewSet):
     serializer_class = StudentUpdateSerializer
@@ -396,7 +370,7 @@ class TeacherUpdateView(viewsets.ModelViewSet):
 class PrincipalUpdateView(viewsets.ModelViewSet):
     serializer_class = PrincipalUpdateSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSelfForPrincipal]
-    http_method_names = ['patch']  # restrict to PATCH only
+    http_method_names = ['patch']  
 
     def get_object(self):
         return Principal.objects.get(user=self.request.user)
@@ -424,32 +398,47 @@ class UpdateFeeStatusView(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
-    
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.conf import settings
-import os
-import openpyxl
 
-class BulkDownloadStudentExcelView(APIView):
-
+class BulkDownloadExcelView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
 
-    def get(self, request):
-        students = Student.objects.all()
-        serializer = BulkDownloadSerializer(students, many=True)
+    def get(self, request, role):
+        if role == 'student':
+            ids = request.query_params.get('id')
+            queryset = Student.objects.filter(student_id__in=[int(i) for i in ids.split(',') if i.isdigit()]) if ids else Student.objects.all()
+            serializer = StudentSerializer(queryset, many=True)
+            sheet_name = "Students"
+            file_name = "students.xlsx"
+
+        elif role == 'teacher':
+            ids = request.query_params.get('id')
+            queryset = Teacher.objects.filter(faculty_id__in=[int(i) for i in ids.split(',') if i.isdigit()]) if ids else Teacher.objects.all()
+            serializer = TeacherSerializer(queryset, many=True)
+            sheet_name = "Teachers"
+            file_name = "teachers.xlsx"
+
+        elif role == 'principal':
+            ids = request.query_params.get('id')
+            queryset = Principal.objects.filter(principal_id__in=[int(i) for i in ids.split(',') if i.isdigit()]) if ids else Principal.objects.all()
+            serializer = PrincipalSerializer(queryset, many=True)
+            sheet_name = "Principals"
+            file_name = "principals.xlsx"
+
+        else:
+            return Response({"error": "Invalid role"}, status=400)
+
 
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Students"
+        ws.title = sheet_name
 
         headers = list(serializer.data[0].keys()) if serializer.data else []
         ws.append(headers)
 
-        for student in serializer.data:
+        for data in serializer.data:
             row = []
             for field in headers:
-                value = student.get(field, "")
+                value = data.get(field, "")
                 if isinstance(value, list):
                     value = ", ".join(str(v) for v in value)
                 elif isinstance(value, dict):
@@ -457,12 +446,98 @@ class BulkDownloadStudentExcelView(APIView):
                 row.append(value)
             ws.append(row)
 
+
         folder_path = os.path.join(settings.MEDIA_ROOT, 'exports')
         os.makedirs(folder_path, exist_ok=True)
 
-        file_path = os.path.join(folder_path, 'students.xlsx')
+        file_path = os.path.join(folder_path, file_name)
         wb.save(file_path)
 
-        file_url = request.build_absolute_uri(settings.MEDIA_URL + 'exports/students.xlsx')
-
+        file_url = request.build_absolute_uri(settings.MEDIA_URL + 'exports/' + file_name)
         return Response({'file_url': file_url})
+    
+
+class BulkUploadViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def create(self, request):
+        users_data = request.data.get("users", [])
+        results = []
+        for user_data in users_data:
+            email = user_data.get("email")
+            password = user_data.get("password")
+            role = user_data.get("role")
+            profile_data = user_data.get("profile", {})
+
+            if not all([email, password, role]):
+                results.append({
+                    "email": email,
+                    "status": "failed",
+                    "message": "Missing email, password, or role"
+                })
+                continue
+
+            if role not in ['student', 'teacher', 'principal']:
+                results.append({
+                    "email": email,
+                    "status": "failed",
+                    "message": "Invalid role"
+                })
+                continue
+
+            try:
+                user = User.objects.create_user(
+                    email=email,
+                    password=password,
+                    role=role,
+                    created_date=timezone.now()
+                )
+                profile_data["user"] = user.id
+
+                if role == 'student':
+                    serializer = StudentSerializer(data=profile_data)
+                elif role == 'teacher':
+                    serializer = TeacherSerializer(data=profile_data)
+                elif role == 'principal':
+                    serializer = PrincipalSerializer(data=profile_data)
+
+                if serializer.is_valid():
+                    instance = serializer.save()
+                    instance.created_by = request.user
+                    instance.created_date = timezone.now()
+                    instance.user.created_by = request.user
+                    instance.user.created_date = timezone.now()
+                    instance.save()
+
+                    # Email
+                    subject = "You have been registered on the platform"
+                    html = f"""
+                    <p>Hello,</p>
+                    <p>You have been registered as a <strong>{role}</strong> on the platform by admin <strong>{request.user.email}</strong>.</p>
+                    <p>Login email: <strong>{email}</strong></p>
+                    <p>Password : {password}</p>
+                    <p>Please reset your password after logging in.</p>
+                    """
+                    send_email(to_email=email, subject=subject, html_content=html)
+
+                    results.append({
+                        "email": email,
+                        "status": "success",
+                        "user": UserSerializer(user).data,
+                        "profile": serializer.data
+                    })
+                else:
+                    user.delete()
+                    results.append({
+                        "email": email,
+                        "status": "failed",
+                        "message": serializer.errors
+                    })
+            except Exception as e:
+                results.append({
+                    "email": email,
+                    "status": "failed",
+                    "message": str(e)
+                })
+
+        return Response({"results": results})

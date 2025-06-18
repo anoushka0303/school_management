@@ -37,12 +37,19 @@ class StudentSerializer(serializers.ModelSerializer):
     courses = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Course.objects.all(), write_only=True
     )
+    courses_display = serializers.StringRelatedField(
+        many=True, source='courses', read_only=True
+    )
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    created_by = serializers.StringRelatedField(read_only=True)
+    updated_by = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = Student
         fields = [
-            'student_id', 'user', 'name', 'guardian_name', 'guardian_contact',
-            'student_contact', 'class_name', 'semester', 'courses', 'enrollments',
+            'student_id', 'user', 'user_email', 'name', 'guardian_name', 'guardian_contact',
+            'student_contact', 'class_name', 'semester',
+            'courses', 'courses_display', 'enrollments',
             'updated_date', 'updated_by', 'created_date', 'created_by',
             'deleted_date', 'deleted_by'
         ]
@@ -60,7 +67,7 @@ class StudentSerializer(serializers.ModelSerializer):
         student.save()
 
         return student
-    
+
     def update(self, instance, validated_data):
         request = self.context.get('request')
         user = request.user if request else None
@@ -73,53 +80,10 @@ class StudentSerializer(serializers.ModelSerializer):
         if courses is not None:
             instance.courses.set(courses)
 
+        instance.updated_by = user
         instance.save()
 
         return instance
-
-
-
-
-'''class StudentPersonalInfoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = ['name', 'guardian_name', 'guardian_contact', 'student_contact']
-
-    def update(self, instance, validated_data):
-        user = self.context['request'].user
-        if user.role != 'student' or instance.user != user:
-            raise serializers.ValidationError("You are not authorized to update this information.")
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.updated_by = user
-        instance.save()
-        return instance'''
-
-
-'''class StudentAcademicInfoSerializer(serializers.ModelSerializer):
-    enrollments = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Student
-        fields = ['class_name', 'semester', 'enrollments']
-
-    def get_enrollments(self, obj):
-        enrollments = Enrollment.objects.filter(student=obj)
-        return StudentCourseEnrollmentSerializer(enrollments, many=True).data
-
-    def update(self, instance, validated_data):
-        user = self.context['request'].user
-
-        if user.role == 'admin':
-            instance.class_name = validated_data.get('class_name', instance.class_name)
-            instance.semester = validated_data.get('semester', instance.semester)
-            instance.updated_by = user
-            instance.save()
-            return instance
-
-        raise serializers.ValidationError("Only admins can update academic information here.")'''
-
 
 class GradeUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -198,25 +162,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-'''class AdminSerializer(serializers.Serializer):
-    students = StudentSerializer(source='get_students', many=True)
-    teachers = TeacherSerializer(source='get_teachers', many=True)
-    principals = PrincipalSerializer(source='get_principals', many=True)
-    courses = serializers.SerializerMethodField()
-
-    def get_students(self, obj):
-        return Student.objects.all()
-
-    def get_teachers(self, obj):
-        return Teacher.objects.all()
-
-    def get_principals(self, obj):
-        return Principal.objects.all()
-
-    def get_courses(self, obj):
-        return Course.objects.all()'''
-
-
 class StudentUpdateSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=False)
     guardian_name = serializers.CharField(required=False)
@@ -277,9 +222,3 @@ class PrincipalUpdateSerializer(serializers.ModelSerializer):
         instance.user.updated_date = timezone.now()
         instance.save()
         return instance
-    
-
-class BulkDownloadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Student
-        fields = "__all__"

@@ -42,7 +42,8 @@ urlpatterns = [
     # Update fee status
     path('fee-status/<int:pk>/update/', UpdateFeeStatusView.as_view({'patch': 'partial_update'}), name='fee-status-update'),
 
-    path('student/bulk-download/', BulkDownloadStudentExcelView.as_view(), name = 'bulk-download'),
+    path('<str:role>/bulk-download/', BulkDownloadExcelView.as_view(), name = 'bulk-download'),
+    path('bulk-upload/', BulkUploadViewSet.as_view({'post' : 'create'}), name = 'bulk-upload'),
 
     # All router-based URLs
     path('', include(router.urls)),
