@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
@@ -583,3 +583,134 @@ class BulkEnrollViewSet(viewsets.ViewSet):
                 })
 
         return Response(results)
+    
+class UploadStudentExcel(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    parser_classes = [parsers.MultiPartParser]
+    serializer_class = StudentSerializer
+
+    def create(self, request):
+        excel = request.FILES.get("file")
+
+        if not excel:
+            return Response({
+                "message": "Bad Request. Excel file expected.",
+                "has_error": True,
+                "status": 400
+            }, status=400)
+
+        try:
+            wb = openpyxl.load_workbook(filename=excel)
+            sheet = wb.active
+            headers = [cell.value for cell in sheet[1]]
+
+            required_fields = ['email', 'password', 'role']
+            if not all(field in headers for field in required_fields):
+                return Response({
+                    "message": "Invalid data in file. Email, password and role columns are required.",
+                    "status": 400
+                }, status=400)
+
+            results = []
+
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                row_data = dict(zip(headers, row))
+                email = row_data.get('email')
+                password = row_data.get('password')
+                role = row_data.get('role')
+
+                if not email or not password or not role:
+                    results.append({
+                        "email": email,
+                        "status": "failed",
+                        "message": "Missing email, password, or role."
+                    })
+                    continue
+
+                if role != "student":
+                    results.append({
+                        "email": email,
+                        "status": "failed",
+                        "message": "This upload only supports role=student"
+                    })
+                    continue
+
+                profile_data = {}
+                course_ids = []
+
+                for key, value in row_data.items():
+                    if key in ['email', 'password', 'role']:
+                        continue
+                    elif key == "courses" and value:
+                        course_ids = [int(cid.strip()) for cid in str(value).split(",") if cid.strip().isdigit()]
+                        profile_data[key] = course_ids
+                    else:
+                        profile_data[key] = value
+
+                try:
+                    user = User.objects.create_user(
+                        email=email,
+                        password=password,
+                        role=role,
+                        created_date=timezone.now()
+                    )
+                except Exception as e:
+                    results.append({
+                        "email": email,
+                        "status": "failed",
+                        "message": str(e)
+                    })
+                    continue
+
+                profile_data['user'] = user.id
+                serializer = self.serializer_class(data=profile_data)
+
+                if serializer.is_valid():
+                    instance = serializer.save()  
+                    for cid in course_ids:
+                        try:
+                            course = Course.objects.get(course_id=cid)
+                            Enrollment.objects.get_or_create(student=instance, course=course)
+                        except Course.DoesNotExist:
+                            results.append({
+                                "email": email,
+                                "status": "warning",
+                                "message": f"Course ID {cid} not found"
+                            })
+
+                    instance.created_by = request.user
+                    instance.created_date = timezone.now()
+                    instance.user.created_by = request.user
+                    instance.user.created_date = timezone.now()
+                    instance.save()
+
+                    subject = "You have been registered on the platform"
+                    html = f"""
+                    <p>Hello,</p>
+                    <p>You have been registered as a <strong>{role}</strong> on the platform by admin <strong>{request.user.email}</strong>.</p>
+                    <p>Login email: <strong>{email}</strong></p>
+                    <p>Password : {password}</p>
+                    <p>Please reset your password after logging in.</p>
+                    """
+                    send_email(to_email=email, subject=subject, html_content=html)
+
+                    results.append({
+                        "email": email,
+                        "status": "success",
+                        "data": serializer.data
+                    })
+                else:
+                    user.delete()
+                    results.append({
+                        "email": email,
+                        "status": "failed",
+                        "errors": serializer.errors
+                    })
+
+            return Response({"results": results}, status=200)
+
+        except Exception as e:
+            return Response({
+                "error": str(e),
+                "status": 500
+            }, status=500)
