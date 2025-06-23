@@ -155,6 +155,26 @@ class Principal(models.Model):
     def clean(self):
         if self.user.role != 'principal':
             raise ValidationError("Invalid role: Principal model must be linked to a user with role 'principal'.")
+        
+
+class BulkUploadStatus(models.Model):
+    status_choices = (
+        ('success', 'Success'),
+        ('partial_success', 'Partial_success'),
+        ('failure', 'Failure'),
+        ('uploading', 'Uploading')
+    )
+    uploaded_by = models.ForeignKey(User, on_delete= models.CASCADE)
+    uploaded_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices= status_choices, default='uploading')
+    file_name = models.CharField(max_length=100)
+    total_record = models.IntegerField()
+    success_count = models.IntegerField()
+    failure_count = models.IntegerField()
+    remarks = models.TextField()
+
+    def __str__(self):
+        return f"{self.file_name} - {self.status}"
 
 @receiver(post_save, sender=Teacher)
 def create_course_for_teacher(sender, instance, created, **kwargs):

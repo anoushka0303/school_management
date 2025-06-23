@@ -587,7 +587,6 @@ class BulkEnrollViewSet(viewsets.ViewSet):
 class UploadExcel(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     parser_classes = [parsers.MultiPartParser]
-    serializer_class = StudentSerializer
 
     def create(self, request):
         excel = request.FILES.get("file")
@@ -601,12 +600,20 @@ class UploadExcel(viewsets.ViewSet):
 
         try:
             file_name = excel.name.lower()
+            status_obj = BulkUploadStatus.objects.create(
+                uploaded_by=request.user,
+                file_name=file_name,
+                status='uploading',
+                total_record=0,     
+                success_count=0,
+                failure_count=0
+            )
             if "student" in file_name:
-                return self.UploadStudents(excel, request)
+                return self.UploadStudents(excel, request, status_obj)
             elif "teacher" in file_name:
-                return self.UploadTeachers(excel, request)
+                return self.UploadTeachers(excel, request, status_obj)
             elif "principal" in file_name:
-                return self.UploadPrincipals(excel, request)
+                return self.UploadPrincipals(excel, request, status_obj)
             else:
                 return Response({
                     "message" : "Invalid file type. Must contain 'teacher', 'student' or 'principal' in file name.",
@@ -618,28 +625,34 @@ class UploadExcel(viewsets.ViewSet):
                 "status": 500
             }, status=500)
         
-    def UploadStudents(self, excel_file, request):
+    def UploadStudents(self, excel_file, request, status_obj):
+        success_count = 0
+        fail_count = 0
+        total = 0
         serializer_class = StudentSerializer
         wb = openpyxl.load_workbook(filename=excel_file)
         sheet = wb.active
         headers = [cell.value for cell in sheet[1]]
 
-        required_fields = ['email', 'password', 'role']
-        if not all(field in headers for field in required_fields):
-            return Response({
-                "message": "Invalid data in file. Email, password and role columns are required.",
-                "status": 400
-            }, status=400)
-
         results = []
 
+        '''required_fields = ['email', 'password', 'role']
+        if not all(field in headers for field in required_fields):
+            fail_count += 1
+            results.append({
+                "message": "Invalid data in file. Email, password and role columns are required.",
+                "status": 400
+            })'''
+
         for row in sheet.iter_rows(min_row=2, values_only=True):
+            total += 1
             row_data = dict(zip(headers, row))
             email = row_data.get('email')
             password = row_data.get('password')
             role = row_data.get('role')
 
             if not email or not password or not role:
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -648,6 +661,7 @@ class UploadExcel(viewsets.ViewSet):
                 continue
 
             if role != "student":
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -675,6 +689,7 @@ class UploadExcel(viewsets.ViewSet):
                     created_date=timezone.now()
                 )
             except Exception as e:
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -686,6 +701,7 @@ class UploadExcel(viewsets.ViewSet):
             serializer = serializer_class(data=profile_data)
 
             if serializer.is_valid():
+                success_count += 1
                 instance = serializer.save()  
                 for cid in course_ids:
                     try:
@@ -720,17 +736,30 @@ class UploadExcel(viewsets.ViewSet):
                     "data": serializer.data
                 })
             else:
+                fail_count += 1
                 user.delete()
                 results.append({
                     "email": email,
                     "status": "failed",
                     "errors": serializer.errors
                 })
+        status_obj.total_record = total
+        status_obj.success_count = success_count
+        status_obj.failure_count = fail_count
+
+        if fail_count == total:
+            status_obj.status = 'fail'
+        elif success_count == total:
+            status_obj.status = 'success'
+        else:
+            status_obj.status = 'partial_success'
+
+        status_obj.save()
 
         return Response({"results": results}, status=200)
     
 
-    def UploadTeachers(self, excel_file, request):
+    def UploadTeachers(self, excel_file, request, status_obj):
         wb = openpyxl.load_workbook(excel_file)
         sheet = wb.active
         serializer_class = TeacherSerializer
@@ -763,7 +792,7 @@ class UploadExcel(viewsets.ViewSet):
                 results.append({
                     "email": email,
                     "status": "failed",
-                    "message": "This upload only supports role=student"
+                    "message": "This upload only supports role=teacher"
                 })
                 continue
 
@@ -826,7 +855,7 @@ class UploadExcel(viewsets.ViewSet):
 
         return Response({"results": results}, status=200)
     
-    def UploadPrincipals(self, excel_file, request):
+    def UploadPrincipals(self, excel_file, request, status_obj):
         wb = openpyxl.load_workbook(excel_file)
         sheet = wb.active
         serializer_class = PrincipalSerializer
@@ -855,11 +884,11 @@ class UploadExcel(viewsets.ViewSet):
                 })
                 continue
 
-            if role != "teacher":
+            if role != "principal":
                 results.append({
                     "email": email,
                     "status": "failed",
-                    "message": "This upload only supports role=student"
+                    "message": "This upload only supports role=principal"
                 })
                 continue
 
