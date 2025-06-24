@@ -172,6 +172,7 @@ class BulkUploadStatus(models.Model):
     success_count = models.IntegerField()
     failure_count = models.IntegerField()
     remarks = models.TextField()
+    file = models.URLField(null = True, blank= True)
 
     def __str__(self):
         return f"{self.file_name} - {self.status}"

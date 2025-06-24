@@ -14,10 +14,13 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 import openpyxl
 from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 import os
 from django.conf import settings
 from .utils import send_email
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from io import BytesIO
 
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
@@ -600,13 +603,18 @@ class UploadExcel(viewsets.ViewSet):
 
         try:
             file_name = excel.name.lower()
+            relative_path = f"bulk_uploads/{excel.name}"
+            file_instance = default_storage.save(relative_path, ContentFile(excel.read()))
+            absolute_path = default_storage.path(file_instance)
+
             status_obj = BulkUploadStatus.objects.create(
                 uploaded_by=request.user,
                 file_name=file_name,
                 status='uploading',
                 total_record=0,     
                 success_count=0,
-                failure_count=0
+                failure_count=0,
+                file = absolute_path
             )
             if "student" in file_name:
                 return self.UploadStudents(excel, request, status_obj)
@@ -754,33 +762,54 @@ class UploadExcel(viewsets.ViewSet):
         else:
             status_obj.status = 'partial_success'
 
+
+        wb = openpyxl.load_workbook(filename=default_storage.path(status_obj.file))
+        sheet = wb.active
+        existing_headers = [cell.value for cell in sheet[1]]
+
+
+        if "Status" not in existing_headers:
+            sheet.cell(row=1, column=len(existing_headers) + 1).value = "Status"
+
+
+        for i, row in enumerate(sheet.iter_rows(min_row=2, max_row=sheet.max_row), start=0):
+            result = results[i] if i < len(results) else {}
+            msg = result.get("message") or str(result.get("errors") or result.get("status", "unknown"))
+            sheet.cell(row=i + 2, column=len(existing_headers) + 1).value = msg
+
+        wb.save(default_storage.path(status_obj.file))
         status_obj.save()
 
         return Response({"results": results}, status=200)
     
 
     def UploadTeachers(self, excel_file, request, status_obj):
+        total = 0
+        fail_count = 0
+        success_count = 0
         wb = openpyxl.load_workbook(excel_file)
         sheet = wb.active
         serializer_class = TeacherSerializer
         headers = [cell.value for cell in sheet[1]]
 
-        required_fields = ['email', 'password', 'role']
+        '''required_fields = ['email', 'password', 'role']
         if not all(field in headers for field in required_fields):
             return Response({
                 "message": "Invalid data in file. Email, password and role columns are required.",
                 "status": 400
-            }, status=400)
+            }, status=400)'''
 
         results = []
 
         for row in sheet.iter_rows(min_row=2, values_only=True):
+            total += 1
             row_data = dict(zip(headers, row))
             email = row_data.get('email')
             password = row_data.get('password')
             role = row_data.get('role')
 
             if not email or not password or not role:
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -789,6 +818,7 @@ class UploadExcel(viewsets.ViewSet):
                 continue
 
             if role != "teacher":
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -812,6 +842,7 @@ class UploadExcel(viewsets.ViewSet):
                     created_date=timezone.now()
                 )
             except Exception as e:
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -823,6 +854,7 @@ class UploadExcel(viewsets.ViewSet):
             serializer = serializer_class(data=profile_data)
 
             if serializer.is_valid():
+                success_count += 1
                 instance = serializer.save()  
                 instance.created_by = request.user
                 instance.created_date = timezone.now()
@@ -846,6 +878,7 @@ class UploadExcel(viewsets.ViewSet):
                     "data": serializer.data
                 })
             else:
+                fail_count += 1
                 user.delete()
                 results.append({
                     "email": email,
@@ -853,30 +886,63 @@ class UploadExcel(viewsets.ViewSet):
                     "errors": serializer.errors
                 })
 
+        status_obj.total_record = total
+        status_obj.success_count = success_count
+        status_obj.failure_count = fail_count
+
+        if fail_count == total:
+            status_obj.status = 'fail'
+        elif success_count == total:
+            status_obj.status = 'success'
+        else:
+            status_obj.status = 'partial_success'
+
+        wb = openpyxl.load_workbook(filename=default_storage.path(status_obj.file))
+        sheet = wb.active
+        existing_headers = [cell.value for cell in sheet[1]]
+
+
+        if "Status" not in existing_headers:
+            sheet.cell(row=1, column=len(existing_headers) + 1).value = "Status"
+
+
+        for i, row in enumerate(sheet.iter_rows(min_row=2, max_row=sheet.max_row), start=0):
+            result = results[i] if i < len(results) else {}
+            msg = result.get("message") or str(result.get("errors") or result.get("status", "unknown"))
+            sheet.cell(row=i + 2, column=len(existing_headers) + 1).value = msg
+
+        wb.save(default_storage.path(status_obj.file))
+        status_obj.save()
+
         return Response({"results": results}, status=200)
     
     def UploadPrincipals(self, excel_file, request, status_obj):
+        total = 0
+        success_count = 0
+        fail_count = 0
         wb = openpyxl.load_workbook(excel_file)
         sheet = wb.active
         serializer_class = PrincipalSerializer
         headers = [cell.value for cell in sheet[1]]
 
-        required_fields = ['email', 'password', 'role']
+        '''required_fields = ['email', 'password', 'role']
         if not all(field in headers for field in required_fields):
             return Response({
                 "message": "Invalid data in file. Email, password and role columns are required.",
                 "status": 400
-            }, status=400)
+            }, status=400)'''
 
         results = []
 
         for row in sheet.iter_rows(min_row=2, values_only=True):
+            total += 1
             row_data = dict(zip(headers, row))
             email = row_data.get('email')
             password = row_data.get('password')
             role = row_data.get('role')
 
             if not email or not password or not role:
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -885,6 +951,7 @@ class UploadExcel(viewsets.ViewSet):
                 continue
 
             if role != "principal":
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -908,6 +975,7 @@ class UploadExcel(viewsets.ViewSet):
                     created_date=timezone.now()
                 )
             except Exception as e:
+                fail_count += 1
                 results.append({
                     "email": email,
                     "status": "failed",
@@ -919,6 +987,7 @@ class UploadExcel(viewsets.ViewSet):
             serializer = serializer_class(data=profile_data)
 
             if serializer.is_valid():
+                success_count += 1
                 instance = serializer.save()  
                 instance.created_by = request.user
                 instance.created_date = timezone.now()
@@ -942,6 +1011,7 @@ class UploadExcel(viewsets.ViewSet):
                     "data": serializer.data
                 })
             else:
+                fail_count += 1
                 user.delete()
                 results.append({
                     "email": email,
@@ -949,4 +1019,57 @@ class UploadExcel(viewsets.ViewSet):
                     "errors": serializer.errors
                 })
 
+        status_obj.total_record = total
+        status_obj.success_count = success_count
+        status_obj.failure_count = fail_count
+
+        if fail_count == total:
+            status_obj.status = 'fail'
+        elif success_count == total:
+            status_obj.status = 'success'
+        else:
+            status_obj.status = 'partial_success'
+
+        wb = openpyxl.load_workbook(filename=default_storage.path(status_obj.file))
+        sheet = wb.active
+        existing_headers = [cell.value for cell in sheet[1]]
+
+
+        if "Status" not in existing_headers:
+            sheet.cell(row=1, column=len(existing_headers) + 1).value = "Status"
+
+
+        for i, row in enumerate(sheet.iter_rows(min_row=2, max_row=sheet.max_row), start=0):
+            result = results[i] if i < len(results) else {}
+            msg = result.get("message") or str(result.get("errors") or result.get("status", "unknown"))
+            sheet.cell(row=i + 2, column=len(existing_headers) + 1).value = msg
+
+        wb.save(default_storage.path(status_obj.file))
+        status_obj.save()
+
         return Response({"results": results}, status=200)
+
+
+class DownloadResultViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdmin, permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            status_obj = BulkUploadStatus.objects.get(pk = pk)
+            if not status_obj:
+                return Response({
+                    "message" : "file not found.",
+                    "status" : 404
+                }, status= 404)
+            
+            relative_path = status_obj.file.replace(settings.MEDIA_URL, "")
+            abs_path = default_storage.path(relative_path)
+            if not os.path.exists(abs_path):
+                raise FileNotFoundError
+            file_handle = open(abs_path, 'rb')
+            response = FileResponse(file_handle, as_attachment=True, filename=os.path.basename(abs_path))
+            return response
+        except BulkUploadStatus.DoesNotExist:
+            raise Http404("Upload status not found")
+        except FileNotFoundError:
+            return Response({"error": "File not found on server"}, status=404)
