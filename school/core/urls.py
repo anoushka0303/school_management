@@ -25,6 +25,6 @@ urlpatterns = [
     path('bulk-upload/', BulkUploadViewSet.as_view({'post' : 'create'}), name = 'bulk-upload'),
     path('bulk-enroll/', BulkEnrollViewSet.as_view({'post' : 'create'}), name = 'bulk-enroll'),
     path('bulk-upload-students/', UploadExcel.as_view({'post' : 'create'}), name= 'student-upload'),
-    path('download-results/', DownloadResultViewSet.as_view(), name= 'download-result'),
+    path('download-results/', DownloadResultViewSet.as_view({'get' : 'get'}), name= 'download-result'),
     path('', include(router.urls)),
 ]

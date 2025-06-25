@@ -21,6 +21,7 @@ from .utils import send_email
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from io import BytesIO
+from .pagination import *
 
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
@@ -203,6 +204,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSelf]
+    pagination_class = UserDataPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -590,6 +592,7 @@ class BulkEnrollViewSet(viewsets.ViewSet):
 class UploadExcel(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     parser_classes = [parsers.MultiPartParser]
+    
 
     def create(self, request):
         excel = request.FILES.get("file")
@@ -777,7 +780,7 @@ class UploadExcel(viewsets.ViewSet):
             msg = result.get("message") or str(result.get("errors") or result.get("status", "unknown"))
             sheet.cell(row=i + 2, column=len(existing_headers) + 1).value = msg
 
-        wb.save(default_storage.path(status_obj.file))
+        wb.save(status_obj.file)
         status_obj.save()
 
         return Response({"results": results}, status=200)
@@ -904,7 +907,6 @@ class UploadExcel(viewsets.ViewSet):
 
         if "Status" not in existing_headers:
             sheet.cell(row=1, column=len(existing_headers) + 1).value = "Status"
-
 
         for i, row in enumerate(sheet.iter_rows(min_row=2, max_row=sheet.max_row), start=0):
             result = results[i] if i < len(results) else {}
