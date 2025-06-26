@@ -25,33 +25,11 @@ from .pagination import *
 
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
-
-
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    
-    def get_permissions(self):
-        if self.action == 'list' or self.action == 'destroy':
-            return [permissions.IsAuthenticated(), IsAdmin()]
-        elif self.action == 'retrieve':
-            return [permissions.IsAuthenticated(), IsUser()]
         
-    def get_object(self):
-        obj = super().get_object()
-        user = self.request.user
-
-        if self.action == 'retrieve' and not (user.role == 'admin' or obj == user):
-            return Response(
-                {"detail": "Forbidden access. You can only view your own profile."},
-                status= 403
-            )
-        
-
-
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+    pagination_class = UserDataPagination
 
     def get_permissions(self):
         if self.action == 'list':
@@ -80,6 +58,7 @@ class StudentViewSet(viewsets.ModelViewSet):
 class TeacherViewSet(viewsets.ModelViewSet):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
+    pagination_class = UserDataPagination
 
     def get_permissions(self):
         if self.action == 'list':
@@ -108,6 +87,7 @@ class TeacherViewSet(viewsets.ModelViewSet):
 class PrincipalViewSet(viewsets.ModelViewSet):
     queryset = Principal.objects.all()
     serializer_class = PrincipalSerializer
+    pagination_class = UserDataPagination
 
     def get_permissions(self):
         if self.action == 'list':
@@ -140,12 +120,14 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = UserDataPagination
 
 
 class EnrollmentViewSet(viewsets.ModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    pagination_class = UserDataPagination
 
 
 class GradeUpdateView(viewsets.ModelViewSet):
@@ -389,7 +371,6 @@ class PrincipalUpdateView(viewsets.ModelViewSet):
         return Response(serializer.data)
     
 
-
 class UpdateFeeStatusView(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentFeeStatusSerializer
@@ -403,6 +384,7 @@ class UpdateFeeStatusView(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
 
 class BulkDownloadExcelView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
@@ -589,13 +571,19 @@ class BulkEnrollViewSet(viewsets.ViewSet):
 
         return Response(results)
      
+
 class UploadExcel(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     parser_classes = [parsers.MultiPartParser]
     
 
     def create(self, request):
+        #print("Entering create method")
         excel = request.FILES.get("file")
+        '''if not excel:
+            print("none")
+        else:
+            print(excel)'''
 
         if not excel:
             return Response({
@@ -608,6 +596,8 @@ class UploadExcel(viewsets.ViewSet):
             file_name = excel.name.lower()
             relative_path = f"bulk_uploads/{excel.name}"
             file_instance = default_storage.save(relative_path, ContentFile(excel.read()))
+            #print(excel.read())
+            #print(file_instance)
             absolute_path = default_storage.path(file_instance)
 
             status_obj = BulkUploadStatus.objects.create(
@@ -641,7 +631,7 @@ class UploadExcel(viewsets.ViewSet):
         fail_count = 0
         total = 0
         serializer_class = StudentSerializer
-        wb = openpyxl.load_workbook(filename=excel_file)
+        wb = openpyxl.load_workbook(excel_file)
         sheet = wb.active
         headers = [cell.value for cell in sheet[1]]
 
@@ -656,6 +646,7 @@ class UploadExcel(viewsets.ViewSet):
             })'''
 
         for row in sheet.iter_rows(min_row=2, values_only=True):
+            #print(row)
             total += 1
             row_data = dict(zip(headers, row))
             email = row_data.get('email')
@@ -766,7 +757,7 @@ class UploadExcel(viewsets.ViewSet):
             status_obj.status = 'partial_success'
 
 
-        wb = openpyxl.load_workbook(filename=default_storage.path(status_obj.file))
+        wb = openpyxl.load_workbook(status_obj.file)
         sheet = wb.active
         existing_headers = [cell.value for cell in sheet[1]]
 
@@ -1051,27 +1042,25 @@ class UploadExcel(viewsets.ViewSet):
 
         return Response({"results": results}, status=200)
 
-
-class DownloadResultViewSet(viewsets.ModelViewSet):
+class DownloadResultViewSet(APIView):
     permission_classes = [IsAdmin, permissions.IsAuthenticated]
 
     def get(self, request, pk):
         try:
-            status_obj = BulkUploadStatus.objects.get(pk = pk)
-            if not status_obj:
-                return Response({
-                    "message" : "file not found.",
-                    "status" : 404
-                }, status= 404)
-            
-            relative_path = status_obj.file.replace(settings.MEDIA_URL, "")
-            abs_path = default_storage.path(relative_path)
+            status_obj = BulkUploadStatus.objects.get(pk=pk)
+            abs_path = status_obj.file  
+
             if not os.path.exists(abs_path):
                 raise FileNotFoundError
-            file_handle = open(abs_path, 'rb')
-            response = FileResponse(file_handle, as_attachment=True, filename=os.path.basename(abs_path))
-            return response
+
+            return FileResponse(
+                open(abs_path, 'rb'),
+                as_attachment=True,
+                filename=os.path.basename(abs_path)
+            )
+
         except BulkUploadStatus.DoesNotExist:
             raise Http404("Upload status not found")
+
         except FileNotFoundError:
             return Response({"error": "File not found on server"}, status=404)
