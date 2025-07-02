@@ -187,14 +187,53 @@ class AuthService(core_pb2_grpc.AuthServiceServicer):
             ),
             **profile
         )
+    
 
+class StudentService(core_pb2_grpc.StudentServiceServicer):
+
+    def ListStudents(self, request, context):
+        metadata = dict(context.invocation_metadata())
+        auth_header = metadata.get("authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Missing or invalid Authorization header")
+
+        payload = verify_jwt(auth_header.split(" ")[1])
+        if not payload:
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid or expired token")
+
+        role = payload.get("role")
+        if role != "admin":
+            context.abort(grpc.StatusCode.PERMISSION_DENIED, "Only admins can list all students")
+
+        students = Student.objects.all()
+        student_list = []
+
+        for student in students:
+            student_list.append(
+                core_pb2.Student(
+                    student_id=student.student_id,
+                    user_id=student.user.id,
+                    name=student.name,
+                    guardian_name=student.guardian_name,
+                    guardian_contact=student.guardian_contact,
+                    student_contact=student.student_contact,
+                    class_name=student.class_name,
+                    semester=student.semester,
+                    course_ids=[c.course_id for c in student.courses.all()],
+                    address=student.address or "",
+                    fee_status=student.fee_status or ""
+                )
+            )
+
+        return core_pb2.GetStudentsReply(students=student_list)
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     core_pb2_grpc.add_AuthServiceServicer_to_server(AuthService(), server)
+    core_pb2_grpc.add_StudentServiceServicer_to_server(StudentService(), server)
     server.add_insecure_port('[::]:8000')
     server.start()
-    print("gRPC server started on port 8000 🚀")
+    print("gRPC server started on port 8000")
     server.wait_for_termination()
 
 

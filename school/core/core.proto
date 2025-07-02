@@ -132,9 +132,39 @@ message BulkUploadStatus {
   string file = 10;
 }
 
+message GetStudentRequest {
+    int32 student_id = 1;
+}
+
+message GetStudentsRequest {
+    repeated Student students = 1;
+}
+
+message DeleteStudentRequest {
+    int32 student_id = 1;
+}
+
+message GetStudentReply {
+    int32 student_id = 1;
+}
+
+message GetStudentsReply {
+    repeated Student students = 1;
+}
+
+message DeleteStudentReply {
+    int32 student_id = 1;
+}
+
 message Empty {}
 
 service AuthService {
   rpc Register (RegisterRequest) returns (RegisterReply);
   rpc Login (LoginRequest) returns (LoginReply);
+}
+
+service StudentService {
+    rpc ListStudents (GetStudentsRequest) returns (GetStudentsReply);
+    rpc GetStudentById (GetStudentRequest) returns (GetStudentReply);
+    rpc DeletStudent (DeleteStudentRequest) returns (DeleteStudentReply);
 }

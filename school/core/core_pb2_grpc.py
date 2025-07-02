@@ -138,3 +138,161 @@ class AuthService(object):
             timeout,
             metadata,
             _registered_method=True)
+
+
+class StudentServiceStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.ListStudents = channel.unary_unary(
+                '/core.StudentService/ListStudents',
+                request_serializer=core__pb2.GetStudentsRequest.SerializeToString,
+                response_deserializer=core__pb2.GetStudentsReply.FromString,
+                _registered_method=True)
+        self.GetStudentById = channel.unary_unary(
+                '/core.StudentService/GetStudentById',
+                request_serializer=core__pb2.GetStudentRequest.SerializeToString,
+                response_deserializer=core__pb2.GetStudentReply.FromString,
+                _registered_method=True)
+        self.DeletStudent = channel.unary_unary(
+                '/core.StudentService/DeletStudent',
+                request_serializer=core__pb2.DeleteStudentRequest.SerializeToString,
+                response_deserializer=core__pb2.DeleteStudentReply.FromString,
+                _registered_method=True)
+
+
+class StudentServiceServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def ListStudents(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetStudentById(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeletStudent(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_StudentServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'ListStudents': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListStudents,
+                    request_deserializer=core__pb2.GetStudentsRequest.FromString,
+                    response_serializer=core__pb2.GetStudentsReply.SerializeToString,
+            ),
+            'GetStudentById': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStudentById,
+                    request_deserializer=core__pb2.GetStudentRequest.FromString,
+                    response_serializer=core__pb2.GetStudentReply.SerializeToString,
+            ),
+            'DeletStudent': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeletStudent,
+                    request_deserializer=core__pb2.DeleteStudentRequest.FromString,
+                    response_serializer=core__pb2.DeleteStudentReply.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'core.StudentService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('core.StudentService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class StudentService(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def ListStudents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/core.StudentService/ListStudents',
+            core__pb2.GetStudentsRequest.SerializeToString,
+            core__pb2.GetStudentsReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetStudentById(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/core.StudentService/GetStudentById',
+            core__pb2.GetStudentRequest.SerializeToString,
+            core__pb2.GetStudentReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeletStudent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/core.StudentService/DeletStudent',
+            core__pb2.DeleteStudentRequest.SerializeToString,
+            core__pb2.DeleteStudentReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
