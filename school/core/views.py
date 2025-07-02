@@ -137,7 +137,7 @@ class GradeUpdateView(viewsets.ModelViewSet):
 
 
 class LoginView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSelf]
 
     def post(self, request):
         email = request.data.get('email')
