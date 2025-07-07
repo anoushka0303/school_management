@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import core_pb2 as core__pb2
+from core import core_pb2 as core__pb2
 
 GRPC_GENERATED_VERSION = '1.73.1'
 GRPC_VERSION = grpc.__version__
@@ -159,8 +159,8 @@ class StudentServiceStub(object):
                 request_serializer=core__pb2.GetStudentRequest.SerializeToString,
                 response_deserializer=core__pb2.GetStudentReply.FromString,
                 _registered_method=True)
-        self.DeletStudent = channel.unary_unary(
-                '/core.StudentService/DeletStudent',
+        self.DeleteStudent = channel.unary_unary(
+                '/core.StudentService/DeleteStudent',
                 request_serializer=core__pb2.DeleteStudentRequest.SerializeToString,
                 response_deserializer=core__pb2.DeleteStudentReply.FromString,
                 _registered_method=True)
@@ -181,7 +181,7 @@ class StudentServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def DeletStudent(self, request, context):
+    def DeleteStudent(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -200,8 +200,8 @@ def add_StudentServiceServicer_to_server(servicer, server):
                     request_deserializer=core__pb2.GetStudentRequest.FromString,
                     response_serializer=core__pb2.GetStudentReply.SerializeToString,
             ),
-            'DeletStudent': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeletStudent,
+            'DeleteStudent': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteStudent,
                     request_deserializer=core__pb2.DeleteStudentRequest.FromString,
                     response_serializer=core__pb2.DeleteStudentReply.SerializeToString,
             ),
@@ -271,7 +271,7 @@ class StudentService(object):
             _registered_method=True)
 
     @staticmethod
-    def DeletStudent(request,
+    def DeleteStudent(request,
             target,
             options=(),
             channel_credentials=None,
@@ -284,9 +284,167 @@ class StudentService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/core.StudentService/DeletStudent',
+            '/core.StudentService/DeleteStudent',
             core__pb2.DeleteStudentRequest.SerializeToString,
             core__pb2.DeleteStudentReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class TeacherServiceStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.ListTeachers = channel.unary_unary(
+                '/core.TeacherService/ListTeachers',
+                request_serializer=core__pb2.GetTeachersRequest.SerializeToString,
+                response_deserializer=core__pb2.GetTeachersReply.FromString,
+                _registered_method=True)
+        self.GetTeacherById = channel.unary_unary(
+                '/core.TeacherService/GetTeacherById',
+                request_serializer=core__pb2.GetTeacherRequest.SerializeToString,
+                response_deserializer=core__pb2.GetTeacherReply.FromString,
+                _registered_method=True)
+        self.DeleteTeacher = channel.unary_unary(
+                '/core.TeacherService/DeleteTeacher',
+                request_serializer=core__pb2.DeleteTeacherRequest.SerializeToString,
+                response_deserializer=core__pb2.DeleteTeacherReply.FromString,
+                _registered_method=True)
+
+
+class TeacherServiceServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def ListTeachers(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetTeacherById(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteTeacher(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_TeacherServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'ListTeachers': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListTeachers,
+                    request_deserializer=core__pb2.GetTeachersRequest.FromString,
+                    response_serializer=core__pb2.GetTeachersReply.SerializeToString,
+            ),
+            'GetTeacherById': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetTeacherById,
+                    request_deserializer=core__pb2.GetTeacherRequest.FromString,
+                    response_serializer=core__pb2.GetTeacherReply.SerializeToString,
+            ),
+            'DeleteTeacher': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteTeacher,
+                    request_deserializer=core__pb2.DeleteTeacherRequest.FromString,
+                    response_serializer=core__pb2.DeleteTeacherReply.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'core.TeacherService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('core.TeacherService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class TeacherService(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def ListTeachers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/core.TeacherService/ListTeachers',
+            core__pb2.GetTeachersRequest.SerializeToString,
+            core__pb2.GetTeachersReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetTeacherById(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/core.TeacherService/GetTeacherById',
+            core__pb2.GetTeacherRequest.SerializeToString,
+            core__pb2.GetTeacherReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteTeacher(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/core.TeacherService/DeleteTeacher',
+            core__pb2.DeleteTeacherRequest.SerializeToString,
+            core__pb2.DeleteTeacherReply.FromString,
             options,
             channel_credentials,
             insecure,

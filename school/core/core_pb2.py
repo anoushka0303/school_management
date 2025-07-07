@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ncore.proto\x12\x04\x63ore\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa6\x02\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\x12\x11\n\tis_active\x18\x04 \x01(\x08\x12\x10\n\x08is_staff\x18\x05 \x01(\x08\x12\x30\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x07 \x01(\x05\x12\x30\n\x0cupdated_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\t \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\n \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\x0b \x01(\x05\"\xcd\x01\n\x0fRegisterRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\x12(\n\x0fstudent_profile\x18\x04 \x01(\x0b\x32\r.core.StudentH\x00\x12(\n\x0fteacher_profile\x18\x05 \x01(\x0b\x32\r.core.TeacherH\x00\x12,\n\x11principal_profile\x18\x06 \x01(\x0b\x32\x0f.core.PrincipalH\x00\x42\t\n\x07Profile\"\xb6\x01\n\rRegisterReply\x12\x18\n\x04user\x18\x01 \x01(\x0b\x32\n.core.User\x12(\n\x0fstudent_profile\x18\x02 \x01(\x0b\x32\r.core.StudentH\x00\x12(\n\x0fteacher_profile\x18\x03 \x01(\x0b\x32\r.core.TeacherH\x00\x12,\n\x11principal_profile\x18\x04 \x01(\x0b\x32\x0f.core.PrincipalH\x00\x42\t\n\x07profile\"=\n\x0cLoginRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\"\xe0\x01\n\nLoginReply\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x01 \x01(\t\x12\x15\n\rrefresh_token\x18\x02 \x01(\t\x12\x18\n\x04user\x18\x03 \x01(\x0b\x32\n.core.User\x12(\n\x0fstudent_profile\x18\x04 \x01(\x0b\x32\r.core.StudentH\x00\x12(\n\x0fteacher_profile\x18\x05 \x01(\x0b\x32\r.core.TeacherH\x00\x12,\n\x11principal_profile\x18\x06 \x01(\x0b\x32\x0f.core.PrincipalH\x00\x42\t\n\x07profile\"\xc6\x02\n\x07Teacher\x12\x12\n\nfaculty_id\x18\x01 \x01(\x05\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0f\n\x07subject\x18\x04 \x01(\t\x12%\n\x0b\x65nrollments\x18\x05 \x03(\x0b\x32\x10.core.Enrollment\x12\x30\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x07 \x01(\x05\x12\x30\n\x0cupdated_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\t \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\n \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\x0b \x01(\x05\"\x92\x02\n\tPrincipal\x12\x14\n\x0cprincipal_id\x18\x01 \x01(\x05\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x30\n\x0c\x63reated_date\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x05 \x01(\x05\x12\x30\n\x0cupdated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\x07 \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\t \x01(\x05\"D\n\x06\x43ourse\x12\x11\n\tcourse_id\x18\x01 \x01(\x05\x12\x13\n\x0b\x63ourse_name\x18\x02 \x01(\t\x12\x12\n\nteacher_id\x18\x03 \x01(\x05\"\xb7\x03\n\x07Student\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\x12\x0f\n\x07user_id\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x15\n\rguardian_name\x18\x04 \x01(\t\x12\x18\n\x10guardian_contact\x18\x05 \x01(\t\x12\x17\n\x0fstudent_contact\x18\x06 \x01(\t\x12\x12\n\nclass_name\x18\x07 \x01(\t\x12\x10\n\x08semester\x18\x08 \x01(\x05\x12\x12\n\ncourse_ids\x18\t \x03(\x05\x12\x0f\n\x07\x61\x64\x64ress\x18\n \x01(\t\x12\x30\n\x0c\x63reated_date\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x0c \x01(\x05\x12\x30\n\x0cupdated_date\x18\r \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\x0e \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\x0f \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\x10 \x01(\x05\x12\x12\n\nfee_status\x18\x11 \x01(\t\"\x94\x01\n\nEnrollment\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x12\n\nstudent_id\x18\x02 \x01(\x05\x12\x11\n\tcourse_id\x18\x03 \x01(\x05\x12\r\n\x05grade\x18\x04 \x01(\t\x12\x30\n\x0cupdated_date\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\x06 \x01(\x05\"\xec\x01\n\x10\x42ulkUploadStatus\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x13\n\x0buploaded_by\x18\x02 \x01(\x05\x12\x31\n\ruploaded_date\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0e\n\x06status\x18\x04 \x01(\t\x12\x11\n\tfile_name\x18\x05 \x01(\t\x12\x14\n\x0ctotal_record\x18\x06 \x01(\x05\x12\x15\n\rsuccess_count\x18\x07 \x01(\x05\x12\x15\n\rfailure_count\x18\x08 \x01(\x05\x12\x0f\n\x07remarks\x18\t \x01(\t\x12\x0c\n\x04\x66ile\x18\n \x01(\t\"\'\n\x11GetStudentRequest\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"5\n\x12GetStudentsRequest\x12\x1f\n\x08students\x18\x01 \x03(\x0b\x32\r.core.Student\"*\n\x14\x44\x65leteStudentRequest\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"%\n\x0fGetStudentReply\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"3\n\x10GetStudentsReply\x12\x1f\n\x08students\x18\x01 \x03(\x0b\x32\r.core.Student\"(\n\x12\x44\x65leteStudentReply\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"\x07\n\x05\x45mpty2t\n\x0b\x41uthService\x12\x36\n\x08Register\x12\x15.core.RegisterRequest\x1a\x13.core.RegisterReply\x12-\n\x05Login\x12\x12.core.LoginRequest\x1a\x10.core.LoginReply2\xda\x01\n\x0eStudentService\x12@\n\x0cListStudents\x12\x18.core.GetStudentsRequest\x1a\x16.core.GetStudentsReply\x12@\n\x0eGetStudentById\x12\x17.core.GetStudentRequest\x1a\x15.core.GetStudentReply\x12\x44\n\x0c\x44\x65letStudent\x12\x1a.core.DeleteStudentRequest\x1a\x18.core.DeleteStudentReplyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ncore.proto\x12\x04\x63ore\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa6\x02\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\x12\x11\n\tis_active\x18\x04 \x01(\x08\x12\x10\n\x08is_staff\x18\x05 \x01(\x08\x12\x30\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x07 \x01(\x05\x12\x30\n\x0cupdated_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\t \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\n \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\x0b \x01(\x05\"\xcd\x01\n\x0fRegisterRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\x12(\n\x0fstudent_profile\x18\x04 \x01(\x0b\x32\r.core.StudentH\x00\x12(\n\x0fteacher_profile\x18\x05 \x01(\x0b\x32\r.core.TeacherH\x00\x12,\n\x11principal_profile\x18\x06 \x01(\x0b\x32\x0f.core.PrincipalH\x00\x42\t\n\x07Profile\"\xb6\x01\n\rRegisterReply\x12\x18\n\x04user\x18\x01 \x01(\x0b\x32\n.core.User\x12(\n\x0fstudent_profile\x18\x02 \x01(\x0b\x32\r.core.StudentH\x00\x12(\n\x0fteacher_profile\x18\x03 \x01(\x0b\x32\r.core.TeacherH\x00\x12,\n\x11principal_profile\x18\x04 \x01(\x0b\x32\x0f.core.PrincipalH\x00\x42\t\n\x07profile\"=\n\x0cLoginRequest\x12\r\n\x05\x65mail\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x0c\n\x04role\x18\x03 \x01(\t\"\xe0\x01\n\nLoginReply\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x01 \x01(\t\x12\x15\n\rrefresh_token\x18\x02 \x01(\t\x12\x18\n\x04user\x18\x03 \x01(\x0b\x32\n.core.User\x12(\n\x0fstudent_profile\x18\x04 \x01(\x0b\x32\r.core.StudentH\x00\x12(\n\x0fteacher_profile\x18\x05 \x01(\x0b\x32\r.core.TeacherH\x00\x12,\n\x11principal_profile\x18\x06 \x01(\x0b\x32\x0f.core.PrincipalH\x00\x42\t\n\x07profile\"\xd2\x02\n\x07Teacher\x12\x12\n\nteacher_id\x18\x01 \x01(\x05\x12\x1b\n\x07user_id\x18\x02 \x01(\x0b\x32\n.core.User\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0f\n\x07subject\x18\x04 \x01(\t\x12%\n\x0b\x65nrollments\x18\x05 \x03(\x0b\x32\x10.core.Enrollment\x12\x30\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x07 \x01(\x05\x12\x30\n\x0cupdated_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\t \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\n \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\x0b \x01(\x05\"\x9e\x02\n\tPrincipal\x12\x14\n\x0cprincipal_id\x18\x01 \x01(\x05\x12\x1b\n\x07user_id\x18\x02 \x01(\x0b\x32\n.core.User\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x30\n\x0c\x63reated_date\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x05 \x01(\x05\x12\x30\n\x0cupdated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\x07 \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\t \x01(\x05\"D\n\x06\x43ourse\x12\x11\n\tcourse_id\x18\x01 \x01(\x05\x12\x13\n\x0b\x63ourse_name\x18\x02 \x01(\t\x12\x12\n\nteacher_id\x18\x03 \x01(\x05\"\xc3\x03\n\x07Student\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\x12\x1b\n\x07user_id\x18\x02 \x01(\x0b\x32\n.core.User\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x15\n\rguardian_name\x18\x04 \x01(\t\x12\x18\n\x10guardian_contact\x18\x05 \x01(\t\x12\x17\n\x0fstudent_contact\x18\x06 \x01(\t\x12\x12\n\nclass_name\x18\x07 \x01(\t\x12\x10\n\x08semester\x18\x08 \x01(\x05\x12\x12\n\ncourse_ids\x18\t \x03(\x05\x12\x0f\n\x07\x61\x64\x64ress\x18\n \x01(\t\x12\x30\n\x0c\x63reated_date\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x0c \x01(\x05\x12\x30\n\x0cupdated_date\x18\r \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\x0e \x01(\x05\x12\x30\n\x0c\x64\x65leted_date\x18\x0f \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ndeleted_by\x18\x10 \x01(\x05\x12\x12\n\nfee_status\x18\x11 \x01(\t\"\x94\x01\n\nEnrollment\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x12\n\nstudent_id\x18\x02 \x01(\x05\x12\x11\n\tcourse_id\x18\x03 \x01(\x05\x12\r\n\x05grade\x18\x04 \x01(\t\x12\x30\n\x0cupdated_date\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\nupdated_by\x18\x06 \x01(\x05\"\xec\x01\n\x10\x42ulkUploadStatus\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x13\n\x0buploaded_by\x18\x02 \x01(\x05\x12\x31\n\ruploaded_date\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0e\n\x06status\x18\x04 \x01(\t\x12\x11\n\tfile_name\x18\x05 \x01(\t\x12\x14\n\x0ctotal_record\x18\x06 \x01(\x05\x12\x15\n\rsuccess_count\x18\x07 \x01(\x05\x12\x15\n\rfailure_count\x18\x08 \x01(\x05\x12\x0f\n\x07remarks\x18\t \x01(\t\x12\x0c\n\x04\x66ile\x18\n \x01(\t\"\'\n\x11GetStudentRequest\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"5\n\x12GetStudentsRequest\x12\x1f\n\x08students\x18\x01 \x03(\x0b\x32\r.core.Student\"*\n\x14\x44\x65leteStudentRequest\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"%\n\x0fGetStudentReply\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"3\n\x10GetStudentsReply\x12\x1f\n\x08students\x18\x01 \x03(\x0b\x32\r.core.Student\"(\n\x12\x44\x65leteStudentReply\x12\x12\n\nstudent_id\x18\x01 \x01(\x05\"\'\n\x11GetTeacherRequest\x12\x12\n\nteacher_id\x18\x01 \x01(\x05\"5\n\x12GetTeachersRequest\x12\x1f\n\x08students\x18\x01 \x03(\x0b\x32\r.core.Teacher\"*\n\x14\x44\x65leteTeacherRequest\x12\x12\n\nteacher_id\x18\x01 \x01(\x05\"%\n\x0fGetTeacherReply\x12\x12\n\nteacher_id\x18\x01 \x01(\x05\"3\n\x10GetTeachersReply\x12\x1f\n\x08students\x18\x01 \x03(\x0b\x32\r.core.Teacher\"(\n\x12\x44\x65leteTeacherReply\x12\x12\n\nteacher_id\x18\x01 \x01(\x05\"\x07\n\x05\x45mpty2t\n\x0b\x41uthService\x12\x36\n\x08Register\x12\x15.core.RegisterRequest\x1a\x13.core.RegisterReply\x12-\n\x05Login\x12\x12.core.LoginRequest\x1a\x10.core.LoginReply2\xdb\x01\n\x0eStudentService\x12@\n\x0cListStudents\x12\x18.core.GetStudentsRequest\x1a\x16.core.GetStudentsReply\x12@\n\x0eGetStudentById\x12\x17.core.GetStudentRequest\x1a\x15.core.GetStudentReply\x12\x45\n\rDeleteStudent\x12\x1a.core.DeleteStudentRequest\x1a\x18.core.DeleteStudentReply2\xdb\x01\n\x0eTeacherService\x12@\n\x0cListTeachers\x12\x18.core.GetTeachersRequest\x1a\x16.core.GetTeachersReply\x12@\n\x0eGetTeacherById\x12\x17.core.GetTeacherRequest\x1a\x15.core.GetTeacherReply\x12\x45\n\rDeleteTeacher\x12\x1a.core.DeleteTeacherRequest\x1a\x18.core.DeleteTeacherReplyb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,33 +43,47 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LOGINREPLY']._serialized_start=807
   _globals['_LOGINREPLY']._serialized_end=1031
   _globals['_TEACHER']._serialized_start=1034
-  _globals['_TEACHER']._serialized_end=1360
-  _globals['_PRINCIPAL']._serialized_start=1363
-  _globals['_PRINCIPAL']._serialized_end=1637
-  _globals['_COURSE']._serialized_start=1639
-  _globals['_COURSE']._serialized_end=1707
-  _globals['_STUDENT']._serialized_start=1710
-  _globals['_STUDENT']._serialized_end=2149
-  _globals['_ENROLLMENT']._serialized_start=2152
-  _globals['_ENROLLMENT']._serialized_end=2300
-  _globals['_BULKUPLOADSTATUS']._serialized_start=2303
-  _globals['_BULKUPLOADSTATUS']._serialized_end=2539
-  _globals['_GETSTUDENTREQUEST']._serialized_start=2541
-  _globals['_GETSTUDENTREQUEST']._serialized_end=2580
-  _globals['_GETSTUDENTSREQUEST']._serialized_start=2582
-  _globals['_GETSTUDENTSREQUEST']._serialized_end=2635
-  _globals['_DELETESTUDENTREQUEST']._serialized_start=2637
-  _globals['_DELETESTUDENTREQUEST']._serialized_end=2679
-  _globals['_GETSTUDENTREPLY']._serialized_start=2681
-  _globals['_GETSTUDENTREPLY']._serialized_end=2718
-  _globals['_GETSTUDENTSREPLY']._serialized_start=2720
-  _globals['_GETSTUDENTSREPLY']._serialized_end=2771
-  _globals['_DELETESTUDENTREPLY']._serialized_start=2773
-  _globals['_DELETESTUDENTREPLY']._serialized_end=2813
-  _globals['_EMPTY']._serialized_start=2815
-  _globals['_EMPTY']._serialized_end=2822
-  _globals['_AUTHSERVICE']._serialized_start=2824
-  _globals['_AUTHSERVICE']._serialized_end=2940
-  _globals['_STUDENTSERVICE']._serialized_start=2943
-  _globals['_STUDENTSERVICE']._serialized_end=3161
+  _globals['_TEACHER']._serialized_end=1372
+  _globals['_PRINCIPAL']._serialized_start=1375
+  _globals['_PRINCIPAL']._serialized_end=1661
+  _globals['_COURSE']._serialized_start=1663
+  _globals['_COURSE']._serialized_end=1731
+  _globals['_STUDENT']._serialized_start=1734
+  _globals['_STUDENT']._serialized_end=2185
+  _globals['_ENROLLMENT']._serialized_start=2188
+  _globals['_ENROLLMENT']._serialized_end=2336
+  _globals['_BULKUPLOADSTATUS']._serialized_start=2339
+  _globals['_BULKUPLOADSTATUS']._serialized_end=2575
+  _globals['_GETSTUDENTREQUEST']._serialized_start=2577
+  _globals['_GETSTUDENTREQUEST']._serialized_end=2616
+  _globals['_GETSTUDENTSREQUEST']._serialized_start=2618
+  _globals['_GETSTUDENTSREQUEST']._serialized_end=2671
+  _globals['_DELETESTUDENTREQUEST']._serialized_start=2673
+  _globals['_DELETESTUDENTREQUEST']._serialized_end=2715
+  _globals['_GETSTUDENTREPLY']._serialized_start=2717
+  _globals['_GETSTUDENTREPLY']._serialized_end=2754
+  _globals['_GETSTUDENTSREPLY']._serialized_start=2756
+  _globals['_GETSTUDENTSREPLY']._serialized_end=2807
+  _globals['_DELETESTUDENTREPLY']._serialized_start=2809
+  _globals['_DELETESTUDENTREPLY']._serialized_end=2849
+  _globals['_GETTEACHERREQUEST']._serialized_start=2851
+  _globals['_GETTEACHERREQUEST']._serialized_end=2890
+  _globals['_GETTEACHERSREQUEST']._serialized_start=2892
+  _globals['_GETTEACHERSREQUEST']._serialized_end=2945
+  _globals['_DELETETEACHERREQUEST']._serialized_start=2947
+  _globals['_DELETETEACHERREQUEST']._serialized_end=2989
+  _globals['_GETTEACHERREPLY']._serialized_start=2991
+  _globals['_GETTEACHERREPLY']._serialized_end=3028
+  _globals['_GETTEACHERSREPLY']._serialized_start=3030
+  _globals['_GETTEACHERSREPLY']._serialized_end=3081
+  _globals['_DELETETEACHERREPLY']._serialized_start=3083
+  _globals['_DELETETEACHERREPLY']._serialized_end=3123
+  _globals['_EMPTY']._serialized_start=3125
+  _globals['_EMPTY']._serialized_end=3132
+  _globals['_AUTHSERVICE']._serialized_start=3134
+  _globals['_AUTHSERVICE']._serialized_end=3250
+  _globals['_STUDENTSERVICE']._serialized_start=3253
+  _globals['_STUDENTSERVICE']._serialized_end=3472
+  _globals['_TEACHERSERVICE']._serialized_start=3475
+  _globals['_TEACHERSERVICE']._serialized_end=3694
 # @@protoc_insertion_point(module_scope)

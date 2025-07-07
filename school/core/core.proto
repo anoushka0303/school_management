@@ -59,8 +59,8 @@ message LoginReply {
 }
 
 message Teacher {
-  int32 faculty_id = 1;
-  int32 user_id = 2;
+  int32 teacher_id = 1;
+  User user_id = 2;
   string name = 3;
   string subject = 4;
   repeated Enrollment enrollments = 5;
@@ -74,7 +74,7 @@ message Teacher {
 
 message Principal {
   int32 principal_id = 1;
-  int32 user_id = 2;
+  User user_id = 2;
   string name = 3;
   google.protobuf.Timestamp created_date = 4;
   int32 created_by = 5;
@@ -92,7 +92,7 @@ message Course {
 
 message Student {
   int32 student_id = 1;
-  int32 user_id = 2;
+  User user_id = 2;
   string name = 3;
   string guardian_name = 4;
   string guardian_contact = 5;
@@ -156,6 +156,30 @@ message DeleteStudentReply {
     int32 student_id = 1;
 }
 
+message GetTeacherRequest {
+    int32 teacher_id = 1;
+}
+
+message GetTeachersRequest {
+    repeated Teacher students = 1;
+}
+
+message DeleteTeacherRequest {
+    int32 teacher_id = 1;
+}
+
+message GetTeacherReply {
+    int32 teacher_id = 1;
+}
+
+message GetTeachersReply {
+    repeated Teacher students = 1;
+}
+
+message DeleteTeacherReply {
+    int32 teacher_id = 1;
+}
+
 message Empty {}
 
 service AuthService {
@@ -166,5 +190,11 @@ service AuthService {
 service StudentService {
     rpc ListStudents (GetStudentsRequest) returns (GetStudentsReply);
     rpc GetStudentById (GetStudentRequest) returns (GetStudentReply);
-    rpc DeletStudent (DeleteStudentRequest) returns (DeleteStudentReply);
+    rpc DeleteStudent (DeleteStudentRequest) returns (DeleteStudentReply);
+}
+
+service TeacherService {
+    rpc ListTeachers (GetTeachersRequest) returns (GetTeachersReply);
+    rpc GetTeacherById (GetTeacherRequest) returns (GetTeacherReply);
+    rpc DeleteTeacher (DeleteTeacherRequest) returns (DeleteTeacherReply);
 }

@@ -22,6 +22,11 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from io import BytesIO
 from .pagination import *
+from core import core_pb2 as core__pb2
+from core import core_pb2_grpc as core__pb2__grpc
+
+import grpc
+
 
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
@@ -39,6 +44,36 @@ class StudentViewSet(viewsets.ModelViewSet):
         elif self.action == 'destroy':
             return [permissions.IsAuthenticated(), IsAdmin()]
         return [permissions.IsAuthenticated()]
+    
+
+    def get_stub(self):
+        channel = grpc.insecure_channel('localhost:50051')
+        return core__pb2__grpc.StudentServiceStub(channel)
+    
+    def list(self, request, *args, **kwargs):
+        if request.user.role != "admin":
+            return Response({"error" : "only admin can list all students"}, status= status.HTTP_401_UNAUTHORIZED)
+        grpc_stub = self.get_stub()
+        grpc_request = core__pb2.GetStudentsRequest()
+        grpc_response = grpc_stub.ListStudents(grpc_request)
+        students_data = []
+        for student in grpc_response.students:
+            students_data.append({
+                "student_id": student.student_id,
+                "user_id": student.user_id.id,
+                "name": student.name,
+                "guardian_name": student.guardian_name,
+                "guardian_contact": student.guardian_contact,
+                "created_date": student.created_date.ToDatetime().isoformat() if student.HasField("created_date") else None,
+                "class_name": student.class_name,
+                "semester": student.semester,
+            })
+
+        page = self.paginate_queryset(students_data)
+        if page is not None:
+            return self.get_paginated_response(page)
+        else:
+            return Response(students_data)
 
     def destroy(self, request, *args, **kwargs):
         if request.user.role != 'admin':
@@ -137,7 +172,7 @@ class GradeUpdateView(viewsets.ModelViewSet):
 
 
 class LoginView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSelf]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         email = request.data.get('email')
@@ -1041,6 +1076,7 @@ class UploadExcel(viewsets.ViewSet):
         status_obj.save()
 
         return Response({"results": results}, status=200)
+
 
 class DownloadResultViewSet(APIView):
     permission_classes = [IsAdmin, permissions.IsAuthenticated]

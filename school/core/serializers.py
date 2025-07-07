@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import *
 from django.utils import timezone
+from django_grpc_framework.proto_serializers import ModelProtoSerializer
+#import core_pb2, core_pb2_grpc
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -32,7 +34,13 @@ class StudentCourseEnrollmentSerializer(serializers.ModelSerializer):
         }
 
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "email", "role"]
+
 class StudentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True) 
     enrollments = EnrollmentSerializer(source='enrollment_set', many=True, read_only=True)
     courses = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Course.objects.all(), write_only=True
@@ -51,7 +59,7 @@ class StudentSerializer(serializers.ModelSerializer):
             'student_contact', 'class_name', 'semester',
             'courses', 'courses_display', 'enrollments',
             'updated_date', 'updated_by', 'created_date', 'created_by',
-            'deleted_date', 'deleted_by'
+            'deleted_date', 'deleted_by', 'address'
         ]
 
     def create(self, validated_data):
@@ -156,10 +164,7 @@ class PrincipalSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = '__all__'
+
 
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
@@ -222,3 +227,10 @@ class PrincipalUpdateSerializer(serializers.ModelSerializer):
         instance.user.updated_date = timezone.now()
         instance.save()
         return instance
+    
+
+class StudentProtoSerializer(ModelProtoSerializer):
+    class Meta:
+        model = Student
+        fields = "__all__"
+        #proto_class = core_pb2_grpc.StudentService
