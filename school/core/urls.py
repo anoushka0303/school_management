@@ -12,7 +12,7 @@ router.register(r'enrollments', EnrollmentViewSet, basename='enrollment')
 router.register(r'grades', GradeUpdateView, basename='grade') 
 
 urlpatterns = [
-    path('auth/login/', LoginView.as_view(), name='login'),
+    path('auth/login/', LoginView.as_view({'post' : 'grpc_post'}), name='login'),
     path('auth/reset-password/request/', RequestPasswordResetView.as_view(), name='request-password-reset'),
     path('auth/reset-password/confirm/', ConfirmPasswordResetView.as_view(), name='confirm-password-reset'),
     path('admin/register/', Register.as_view(), name='admin-register'),

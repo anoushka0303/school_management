@@ -1,5 +1,6 @@
 import os
 import django
+import jwt
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school.settings')
 django.setup()
@@ -19,18 +20,17 @@ from datetime import datetime
 
 from django.utils.dateparse import parse_datetime
 from datetime import datetime, timezone as dt_timezone
+from django.conf import settings
+
 
 def safe_proto_timestamp(proto_field, dt_value):
     dt = None
-
     if isinstance(dt_value, datetime):
         dt = dt_value
     elif isinstance(dt_value, str):
         dt = parse_datetime(dt_value)
-
     if dt and dt.tzinfo is None:
         dt = dt.replace(tzinfo=dt_timezone.utc)
-
     if dt:
         proto_field.FromDatetime(dt)
 
@@ -75,10 +75,83 @@ class StudentService(core_pb2_grpc.StudentServiceServicer):
         reply = core_pb2.DeleteStudentReply()
         print("DeleteStudent called!")
         return reply
+    
 
-server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-core_pb2_grpc.add_StudentServiceServicer_to_server(StudentService(), server)
-server.add_insecure_port('[::]:50051')
-print("starting gRPC server at port 50051")
-server.start()
-server.wait_for_termination()
+
+class AuthService(core_pb2_grpc.AuthServiceServicer):
+    def Login(self, request, context):
+        email= request.email
+        password = request.password
+        role = request.role
+        print("login method called")
+        try:
+            user = User.objects.get(email= email)
+            print(user)
+        except Exception as e:
+            context.set_details("user not found")
+            context.set_code(grpc.StatusCode.UNAVAILABLE)
+            return core_pb2.LoginReply()
+        
+        if not user.check_password(password):
+            context.set_details("invalid credentials")
+            context.set_code(grpc.StatusCode.UNAUTHENTICATED)
+            return core_pb2.LoginReply()
+        
+        access_token = jwt.encode(
+            {"user_id": user.id, "role": role},
+            settings.SECRET_KEY,
+            algorithm="HS256"
+        )
+        refresh_token = jwt.encode(
+            {"user_id": user.id, "role": role, "refresh": True},
+            settings.SECRET_KEY,
+            algorithm="HS256"
+        )
+
+        #print(f"access token {access_token}, refresh token {refresh_token}")
+
+        user_msg = core_pb2.User(
+            id=user.id,
+            email=user.email,
+            role=role
+        )
+
+        reply = core_pb2.LoginReply(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=user_msg
+        )
+
+        if role == "student":
+            student = Student.objects.get(user=user)
+            reply.student_profile.student_id = student.student_id
+            reply.student_profile.class_name = student.class_name
+        elif role == "teacher":
+            teacher = Teacher.objects.get(user = user)
+            reply.teacher_profile.teacher_id = teacher.faculty_id
+        elif role == "principal":
+            principal = Principal.objects.get(user = user)
+            reply.principal_profile.principal_id = principal.principal_id
+
+        if reply.HasField("student_profile"):
+            print(reply)
+        else:
+            print(1)
+
+        #print(reply)
+
+        return reply
+
+
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    core_pb2_grpc.add_StudentServiceServicer_to_server(StudentService(), server)
+    core_pb2_grpc.add_AuthServiceServicer_to_server(AuthService(), server)
+    server.add_insecure_port('[::]:50051')
+    print("starting gRPC server at port 50051")
+    server.start()
+    server.wait_for_termination()
+
+if __name__ == '__main__':
+    serve()

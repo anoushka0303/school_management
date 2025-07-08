@@ -171,10 +171,88 @@ class GradeUpdateView(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, CanUpdateOwnStudentGradeOnly]
 
 
-class LoginView(APIView):
+class LoginView(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
-    def post(self, request):
+    def get_stub(self):
+        channel = grpc.insecure_channel('localhost:50051')
+        stub = core__pb2__grpc.AuthServiceStub(channel) 
+        return stub, channel
+
+    def grpc_post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        role = request.data.get('role')
+
+        if not email or not password or not role:
+            return Response({
+                "message": "Bad request. Email, password and role needed",
+                "status": 400,
+                "has_error": True
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        stub, channel = self.get_stub()
+
+        try:
+            grpc_request = core__pb2.LoginRequest(
+                email=email,
+                password=password,
+                role=role
+            )
+            #print(grpc_request)
+            grpc_response = stub.Login(grpc_request)
+            #print(grpc_response)
+
+            user_data = {
+                "id": grpc_response.user.id,
+                "email": grpc_response.user.email,
+                "role": grpc_response.user.role
+            }
+            '''if not user_data:
+                print(user_data)
+            else:
+                print("1")'''
+
+            profile_data = {}
+
+            if grpc_response.HasField("student_profile"):
+                profile_data = {
+                    "student_id": grpc_response.student_profile.student_id,
+                    "class_name": grpc_response.student_profile.class_name
+                }
+            elif grpc_response.HasField("teacher_profile"):
+                profile_data = {
+                    "teacher_id": grpc_response.teacher_profile.teacher_id
+                }
+            elif grpc_response.HasField("principal_profile"):
+                profile_data = {
+                    "principal_id": grpc_response.principal_profile.principal_id
+                }
+            else:
+                return Response({
+                    "error" : "invalid role"
+                })
+
+            response_data = {
+                "access_token": grpc_response.access_token,
+                "refresh_token": grpc_response.refresh_token,
+                "user": user_data,
+                "profile": profile_data
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except grpc.RpcError as e:
+            return Response({
+                "message": f"gRPC error: {e.details()}",
+                "status": 500,
+                "has_error": True
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        finally:
+            channel.close()
+
+    def http_post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
         role = request.data.get('role')
