@@ -40,7 +40,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "role"]
 
 class StudentSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True) 
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all()
+    )
     enrollments = EnrollmentSerializer(source='enrollment_set', many=True, read_only=True)
     courses = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Course.objects.all(), write_only=True
@@ -49,8 +51,13 @@ class StudentSerializer(serializers.ModelSerializer):
         many=True, source='courses', read_only=True
     )
     user_email = serializers.EmailField(source='user.email', read_only=True)
-    created_by = serializers.StringRelatedField(read_only=True)
-    updated_by = serializers.StringRelatedField(read_only=True)
+    print("entered serializer")
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+    updated_by = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Student
@@ -63,23 +70,22 @@ class StudentSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        request = self.context.get('request')
-        user = request.user if request else None
+        admin_user = self.context.get('admin_user')
+        print("Admin user in context:", admin_user)
+        print("Type:", type(admin_user))
 
         courses = validated_data.pop('courses', [])
         student = Student.objects.create(**validated_data)
         student.courses.set(courses)
 
-        student.created_by = user
-        student.updated_by = user
+        student.created_by = admin_user
+        student.updated_by = admin_user
         student.save()
-
         return student
 
     def update(self, instance, validated_data):
         request = self.context.get('request')
         user = request.user if request else None
-
         courses = validated_data.pop('courses', None)
 
         for attr, value in validated_data.items():
@@ -115,7 +121,6 @@ class GradeUpdateSerializer(serializers.ModelSerializer):
         instance.student.user.updated_date = timezone.now()
         instance.save()
         return instance
-
 
 class StudentFeeStatusSerializer(serializers.ModelSerializer):
     class Meta:

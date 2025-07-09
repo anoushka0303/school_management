@@ -228,10 +228,10 @@ class LoginView(viewsets.ViewSet):
                 profile_data = {
                     "principal_id": grpc_response.principal_profile.principal_id
                 }
-            else:
+            '''else:
                 return Response({
                     "error" : "invalid role"
-                })
+                })'''
 
             response_data = {
                 "access_token": grpc_response.access_token,
@@ -308,10 +308,15 @@ class UserViewSet(viewsets.ModelViewSet):
         return User.objects.filter(id=user.id)
 
 
-class Register(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+class Register(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request):
+    def get_stub(self):
+        channel = grpc.insecure_channel('localhost:50051')
+        stub = core__pb2__grpc.AuthServiceStub(channel) 
+        return stub, channel
+
+    def http_post(self, request):
         role = request.data.get('role')
         email = request.data.get('email')
         password = request.data.get('password')
@@ -368,6 +373,121 @@ class Register(APIView):
         else:
             user.delete()
             return Response(serializer.errors, status=400)
+        
+
+    def grpc_post(self, request):
+        stub, channel = self.get_stub()
+
+        access_token = str(request.auth)  
+
+        metadata = [('authorization', f'Bearer {access_token}')]
+        if not access_token:
+            return Response({
+                "message": "Missing Authorization header",
+                "status": 401,
+                "has_error": True
+            }, status=401)
+
+
+        email = request.data.get('email')
+        password = request.data.get('password')
+        role = request.data.get('role')
+
+        if not all([email, password, role]):
+            return Response({
+                "message": "Email, password and role are required.",
+                "status": 400,
+                "has_error": True
+            }, status=400)
+
+        try:
+            grpc_request = core__pb2.RegisterRequest(
+                email=email,
+                password=password,
+                role=role
+            )
+
+            if role.lower() == "student":
+                student_data = request.data.get('profile', {})
+                student_profile = core__pb2.Student(
+                    name=student_data.get('name'),
+                    guardian_name=student_data.get('guardian_name'),
+                    guardian_contact=student_data.get('guardian_contact'),
+                    student_contact=student_data.get('student_contact'),
+                    class_name=student_data.get('class_name'),
+                    semester=student_data.get('semester', 1),
+                    address=student_data.get('address'),
+                    fee_status=student_data.get('fee_status')
+                )
+                course_ids = student_data.get('courses')
+                if not course_ids:
+                    print("none")
+                    course_ids = []
+                else:
+                    print(f"course_ids: {course_ids} type: {type(course_ids)}")
+                student_profile.course_ids.extend(course_ids)
+                grpc_request.student_profile.CopyFrom(student_profile)
+
+            elif role == "teacher":
+                grpc_request.teacher_profile.CopyFrom(core__pb2.Teacher())
+            elif role == "principal":
+                grpc_request.principal_profile.CopyFrom(core__pb2.Principal())
+
+            grpc_response = stub.Register(grpc_request, metadata=metadata)
+
+            user_data = {
+                "id": grpc_response.user.id,
+                "email": grpc_response.user.email,
+                "role": grpc_response.user.role
+            }
+
+            profile_data = {}
+
+            if grpc_response.HasField("student_profile"):
+                profile_data = {
+                    "student_id": grpc_response.student_profile.student_id,
+                    "name": grpc_response.student_profile.name,
+                    "guardian_name": grpc_response.student_profile.guardian_name,
+                    "guardian_contact": grpc_response.student_profile.guardian_contact,
+                    "student_contact": grpc_response.student_profile.student_contact,
+                    "course_ids": list(grpc_response.student_profile.course_ids),
+                    "class_name": grpc_response.student_profile.class_name,
+                    "semester": grpc_response.student_profile.semester,
+                    "created_date": str(grpc_response.student_profile.created_date),
+                    "created_by": int(grpc_response.student_profile.created_by),
+                    "updated_date": str(grpc_response.student_profile.updated_date),
+                    "updated_by": grpc_response.student_profile.updated_by,
+                    "deleted_date": str(grpc_response.student_profile.deleted_date),
+                    "deleted_by": grpc_response.student_profile.deleted_by,
+                }
+            elif grpc_response.HasField("teacher_profile"):
+                profile_data = {
+                    "teacher_id": grpc_response.teacher_profile.teacher_id
+                }
+            elif grpc_response.HasField("principal_profile"):
+                profile_data = {
+                    "principal_id": grpc_response.principal_profile.principal_id
+                }
+
+            response_data = {
+                "message": "Registration successful",
+                "has_error": False,
+                "user": user_data,
+                "profile": profile_data
+            }
+            return Response(response_data, status=201)
+
+        except grpc.RpcError as e:
+            return Response({
+                "message": f"gRPC error: {e.details()}",
+                "status": 500,
+                "has_error": True
+            }, status=500)
+
+        finally:
+            channel.close()
+
+
     
     
 class RequestPasswordResetView(APIView):
