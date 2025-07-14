@@ -57,31 +57,43 @@ def verify_jwt(context):
 class StudentService(core_pb2_grpc.StudentServiceServicer):
     def ListStudents(self, request, context):
         students = Student.objects.all()
-        serializer = StudentSerializer(students, many = True)
         reply = core_pb2.GetStudentsReply()
-        #print(serializer.data)
-        for student in serializer.data:
-            student_msg = reply.students.add()
-            '''if not student_msg.created_date:
-                print("none")
-            print(student["created_date"])'''
-            safe_proto_timestamp(student_msg.created_date, student["created_date"])
-            '''if not student_msg.created_date:
-                print("none")
-            else:
-                print(student_msg.created_date)
-            print(student["created_date"])'''
-            student_msg.student_id = student["student_id"]
-            student_msg.user_id.id = student["user"]["id"]
-            student_msg.name = student["name"]
-            student_msg.guardian_name = student["guardian_name"]
-            student_msg.guardian_contact = student["guardian_contact"]
-            #student_msg.created_date = student["created_date"]
-            #student_msg.address = student["address"]
-            student_msg.class_name = student["class_name"]
-            student_msg.semester = student["semester"]
-            #student_msg.fee_status = student["fee_status"]
-        print("ListStudents called!")
+
+        for student in students:
+            user_msg = core_pb2.User(
+                id=student.user.id,
+                email=student.user.email,
+                role=student.user.role
+            )
+            
+            student_msg = core_pb2.Student(
+                student_id=student.student_id,
+                name=student.name,
+                guardian_name=student.guardian_name,
+                guardian_contact=student.guardian_contact,
+                student_contact=student.student_contact,
+                class_name=student.class_name,
+                semester=student.semester,
+                address=student.address,
+                fee_status=student.fee_status,
+            )
+            
+            student_msg.user_id.CopyFrom(user_msg) 
+
+            student_msg.course_ids.extend(
+                student.courses.values_list('course_id', flat=True)
+            )
+
+            safe_proto_timestamp(student_msg.created_date, student.created_date)
+            safe_proto_timestamp(student_msg.updated_date, student.updated_date)
+            safe_proto_timestamp(student_msg.deleted_date, student.deleted_date)
+
+            student_msg.created_by = student.created_by.id if student.created_by else 0
+            student_msg.updated_by = student.updated_by.id if student.updated_by else 0
+            student_msg.deleted_by = student.deleted_by.id if student.deleted_by else 0
+
+            reply.students.append(student_msg)
+
         return reply
 
     def GetStudentById(self, request, context):
@@ -269,8 +281,15 @@ def serve():
     core_pb2_grpc.add_AuthServiceServicer_to_server(AuthService(), server)
     server.add_insecure_port('[::]:50051')
     print("starting gRPC server at port 50051")
-    server.start()
-    server.wait_for_termination()
+    try:
+        server.start()
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        print("exiting server...")
+        server.stop(0)
+    except Exception as e:
+        print("unexpected grpc error. shutting down server")
+        server.stop(0)
 
 if __name__ == '__main__':
     serve()

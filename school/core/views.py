@@ -52,21 +52,30 @@ class StudentViewSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         if request.user.role != "admin":
-            return Response({"error" : "only admin can list all students"}, status= status.HTTP_401_UNAUTHORIZED)
+            return Response({"error": "only admin can list all students"}, status=status.HTTP_401_UNAUTHORIZED)
+        
         grpc_stub = self.get_stub()
         grpc_request = core__pb2.GetStudentsRequest()
         grpc_response = grpc_stub.ListStudents(grpc_request)
         students_data = []
+
         for student in grpc_response.students:
             students_data.append({
                 "student_id": student.student_id,
-                "user_id": student.user_id.id,
+                "user_id": {
+                    "id": student.user_id.id,
+                    "email": student.user_id.email,
+                    "role": student.user_id.role
+                },
                 "name": student.name,
                 "guardian_name": student.guardian_name,
                 "guardian_contact": student.guardian_contact,
-                "created_date": student.created_date.ToDatetime().isoformat() if student.HasField("created_date") else None,
+                "student_contact": student.student_contact,
                 "class_name": student.class_name,
                 "semester": student.semester,
+                "created_date": student.created_date.ToDatetime().isoformat() if student.HasField("created_date") else None,
+                "address": student.address,
+                "fee_status": student.fee_status
             })
 
         page = self.paginate_queryset(students_data)
@@ -75,9 +84,14 @@ class StudentViewSet(viewsets.ModelViewSet):
         else:
             return Response(students_data)
 
+
     def destroy(self, request, *args, **kwargs):
         if request.user.role != 'admin':
             return Response({"only admin can delete users."}, status=status.HTTP_403_FORBIDDEN)
+        
+        grpc_stub = self.get_stub()
+        grpc_request = core__pb2.DeleteStudent()
+
 
         instance = self.get_object()
         instance.user.is_active = False
